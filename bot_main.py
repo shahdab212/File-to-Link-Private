@@ -178,6 +178,7 @@ class FileLinkBot:
                 file_id = self.generate_file_id(replied_message)
                 download_url = Config.get_download_url(file_id)
                 stream_url = Config.get_stream_url(file_id)
+                player_url = f"{Config.BASE_URL}/play/{file_id}"
                 
                 # Create response message
                 file_type_emoji = {
@@ -196,23 +197,28 @@ class FileLinkBot:
                     f"🔗 **MIME Type:** `{file_info['mime_type']}`\n\n"
                     f"**🔗 Your Links:**\n"
                     f"📥 **Download:** [Click Here]({download_url})\n"
-                    f"📺 **Stream:** [Click Here]({stream_url})\n\n"
+                    f"📺 **Stream:** [Click Here]({stream_url})\n"
+                    f"🎮 **Player:** [Click Here]({player_url})\n\n"
                     f"⚡ Links are ready to use immediately!\n"
-                    f"🔒 Links are secure and will work as long as the original file exists."
+                    f"🔒 Links are secure and will work as long as the original file exists.\n\n"
+                    f"💡 **Tip:** Use the Player link for better streaming experience in browsers!"
                 )
                 
                 # Create inline keyboard with action buttons
                 keyboard = InlineKeyboardMarkup([
                     [
                         InlineKeyboardButton("📥 Download", url=download_url),
-                        InlineKeyboardButton("📺 Stream", url=stream_url)
+                        InlineKeyboardButton("📺 Direct Stream", url=stream_url)
                     ],
                     [
-                        InlineKeyboardButton("📋 Copy Download Link", callback_data=f"copy_download_{file_id}"),
-                        InlineKeyboardButton("📋 Copy Stream Link", callback_data=f"copy_stream_{file_id}")
+                        InlineKeyboardButton("🎮 Web Player", url=player_url)
                     ],
                     [
-                        InlineKeyboardButton("🔄 Generate New Links", callback_data=f"regenerate_{file_id}")
+                        InlineKeyboardButton("📋 Copy Download", callback_data=f"copy_download_{file_id}"),
+                        InlineKeyboardButton("📋 Copy Stream", callback_data=f"copy_stream_{file_id}")
+                    ],
+                    [
+                        InlineKeyboardButton("📋 Copy Player", callback_data=f"copy_player_{file_id}")
                     ]
                 ])
                 
@@ -268,6 +274,11 @@ class FileLinkBot:
                     file_id = data.replace("copy_stream_", "")
                     stream_url = Config.get_stream_url(file_id)
                     await callback_query.answer(f"📋 Stream link copied!\n{stream_url}", show_alert=True)
+                
+                elif data.startswith("copy_player_"):
+                    file_id = data.replace("copy_player_", "")
+                    player_url = f"{Config.BASE_URL}/play/{file_id}"
+                    await callback_query.answer(f"📋 Player link copied!\n{player_url}", show_alert=True)
                 
                 elif data.startswith("regenerate_"):
                     await callback_query.answer("🔄 Links are still active! No need to regenerate.", show_alert=True)

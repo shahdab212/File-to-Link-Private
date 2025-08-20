@@ -5,6 +5,7 @@ Handles file streaming and download requests
 
 import asyncio
 import logging
+import os
 from typing import Optional
 from aiohttp import web, ClientSession
 from aiohttp.web_response import StreamResponse
@@ -91,13 +92,49 @@ class FileServer:
             if file_info['file_size'] > Config.MAX_FILE_SIZE:
                 raise web.HTTPBadRequest(text="File too large")
             
-            # Prepare response headers
+            # Determine proper MIME type for streaming
+            mime_type = file_info['mime_type']
+            file_name = file_info['file_name'].lower()
+            
+            # Override MIME type for better streaming support
+            if file_info['file_type'] == 'video' or any(ext in file_name for ext in ['.mp4', '.mkv', '.avi', '.mov', '.webm']):
+                if '.mp4' in file_name:
+                    mime_type = 'video/mp4'
+                elif '.webm' in file_name:
+                    mime_type = 'video/webm'
+                elif '.mkv' in file_name:
+                    mime_type = 'video/x-matroska'
+                elif '.avi' in file_name:
+                    mime_type = 'video/x-msvideo'
+                elif '.mov' in file_name:
+                    mime_type = 'video/quicktime'
+                else:
+                    mime_type = 'video/mp4'  # Default for videos
+            elif file_info['file_type'] == 'audio' or any(ext in file_name for ext in ['.mp3', '.wav', '.ogg', '.m4a']):
+                if '.mp3' in file_name:
+                    mime_type = 'audio/mpeg'
+                elif '.wav' in file_name:
+                    mime_type = 'audio/wav'
+                elif '.ogg' in file_name:
+                    mime_type = 'audio/ogg'
+                elif '.m4a' in file_name:
+                    mime_type = 'audio/mp4'
+                else:
+                    mime_type = 'audio/mpeg'  # Default for audio
+            
+            # Prepare response headers for streaming
             response = web.StreamResponse()
-            response.headers['Content-Type'] = file_info['mime_type']
+            response.headers['Content-Type'] = mime_type
             response.headers['Content-Length'] = str(file_info['file_size'])
-            response.headers['Content-Disposition'] = f'inline; filename="{file_info["file_name"]}"'
+            response.headers['Content-Disposition'] = 'inline'  # Force inline viewing
             response.headers['Accept-Ranges'] = 'bytes'
             response.headers['Cache-Control'] = 'public, max-age=3600'
+            
+            # Additional headers to prevent download
+            response.headers['X-Content-Type-Options'] = 'nosniff'
+            response.headers['Access-Control-Allow-Origin'] = '*'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Range'
             
             # Handle range requests for video streaming
             range_header = request.headers.get('Range')
@@ -214,6 +251,93 @@ async def create_app(bot_client: Client) -> web.Application:
     # Add routes
     app.router.add_get('/stream/{file_id}', file_server.stream_file)
     app.router.add_get('/download/{file_id}', file_server.download_file)
+    
+    # Player route
+    async def player_page(request):
+        file_id = request.match_info.get('file_id', '')
+        try:
+            # Try to read the HTML template
+            template_path = os.path.join(os.path.dirname(__file__), 'templates', 'player.html')
+            if os.path.exists(template_path):
+                with open(template_path, 'r', encoding='utf-8') as f:
+                    html_content = f.read()
+                return web.Response(text=html_content, content_type='text/html')
+            else:
+                # Fallback inline HTML if template file doesn't exist
+                html_content = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Player</title>
+    <style>
+        body {{ font-family: Arial, sans-serif; background: #1a1a1a; color: white; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }}
+        .player-container {{ max-width: 90vw; max-height: 90vh; text-align: center; }}
+        video, audio {{ max-width: 100%; max-height: 80vh; background: #000; }}
+        .controls {{ margin-top: 20px; }}
+        .btn {{ background: #007bff; color: white; border: none; padding: 10px 20px; margin: 5px; border-radius: 5px; cursor: pointer; text-decoration: none; display: inline-block; }}
+        .btn:hover {{ background: #0056b3; }}
+        .file-info {{ margin-bottom: 20px; padding: 10px; background: #333; border-radius: 5px; }}
+    </style>
+</head>
+<body>
+    <div class="player-container">
+        <div class="file-info">
+            <h2>File Player</h2>
+            <p>File ID: {file_id}</p>
+        </div>
+        <div id="mediaContainer">
+            <video id="videoPlayer" controls style="width: 100%; max-height: 70vh; display: none;">
+                <source src="/stream/{file_id}" type="video/mp4">
+                Your browser does not support the video tag.
+            </video>
+            <audio id="audioPlayer" controls style="width: 100%; display: none;">
+                <source src="/stream/{file_id}" type="audio/mpeg">
+                Your browser does not support the audio tag.
+            </audio>
+            <div id="fallback" style="padding: 40px; background: #333; border-radius: 10px;">
+                <h3>Media Player</h3>
+                <p>Loading media content...</p>
+            </div>
+        </div>
+        <div class="controls">
+            <a href="/download/{file_id}" class="btn">Download File</a>
+            <a href="/stream/{file_id}" class="btn">Direct Stream Link</a>
+        </div>
+    </div>
+    <script>
+        fetch('/stream/{file_id}', {{ method: 'HEAD' }})
+            .then(response => {{
+                const contentType = response.headers.get('content-type');
+                const fallback = document.getElementById('fallback');
+                const video = document.getElementById('videoPlayer');
+                const audio = document.getElementById('audioPlayer');
+                
+                if (contentType && contentType.startsWith('video/')) {{
+                    fallback.style.display = 'none';
+                    video.style.display = 'block';
+                }} else if (contentType && contentType.startsWith('audio/')) {{
+                    fallback.style.display = 'none';
+                    audio.style.display = 'block';
+                }} else {{
+                    fallback.innerHTML = '<h3>File Preview Not Available</h3><p>This file type cannot be streamed. Use the download button.</p>';
+                }}
+            }})
+            .catch(() => {{
+                document.getElementById('fallback').innerHTML = '<h3>Error</h3><p>Could not load file information.</p>';
+            }});
+    </script>
+</body>
+</html>
+                """
+                return web.Response(text=html_content, content_type='text/html')
+        except Exception as e:
+            logger.error(f"Error serving player page: {e}")
+            return web.Response(text="Error loading player", status=500)
+    
+    app.router.add_get('/play/{file_id}', player_page)
+    app.router.add_get('/player/{file_id}', player_page)
     
     # Health check endpoint
     async def health_check(request):
