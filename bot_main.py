@@ -133,7 +133,7 @@ class FileLinkBot:
             
             await message.reply_text(help_text)
         
-        @self.bot.on_message(filters.command("fdl"))
+        @self.bot.on_message(filters.command("dl"))
         async def fdl_command(client: Client, message: Message):
             """Handle /fdl command - main functionality"""
             try:
