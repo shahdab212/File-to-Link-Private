@@ -88,7 +88,7 @@ class FileLinkBot:
                 "📁 I can generate direct download and streaming links for your Telegram files.\n\n"
                 "**How to use:**\n"
                 "1. Forward or send any video, audio, or document file\n"
-                "2. Reply to that message with `/fdl`\n"
+                "2. Reply to that message with `/dl`\n"
                 "3. Get instant download and streaming links!\n\n"
                 "**Supported files:**\n"
                 "• 📹 Videos (up to 4GB)\n"
@@ -98,7 +98,7 @@ class FileLinkBot:
                 "• ⚡ Fast streaming without downloading\n"
                 "• 📱 Mobile-friendly links\n"
                 "• 🔒 Secure file handling\n\n"
-                "Try it now by sending a file and replying with `/fdl`!"
+                "Try it now by sending a file and replying with `/dl`!"
             )
             
             keyboard = InlineKeyboardMarkup([
@@ -115,7 +115,7 @@ class FileLinkBot:
                 "📖 **Help - How to Use File-to-Link Bot**\n\n"
                 "**Step-by-step guide:**\n\n"
                 "1️⃣ **Send a file**: Upload any video, audio, or document to the chat\n"
-                "2️⃣ **Reply with /fdl**: Reply to the file message with the command `/fdl`\n"
+                "2️⃣ **Reply with /dl**: Reply to the file message with the command `/dl`\n"
                 "3️⃣ **Get your links**: Receive download and streaming links instantly!\n\n"
                 "**Supported file types:**\n"
                 "• 🎬 Video files (.mp4, .mkv, .avi, etc.)\n"
@@ -125,7 +125,7 @@ class FileLinkBot:
                 "**Example usage:**\n"
                 "```\n"
                 "User: [sends video.mp4]\n"
-                "User: /fdl (as reply to the video)\n"
+                "User: /dl (as reply to the video)\n"
                 "Bot: [generates links with buttons]\n"
                 "```\n\n"
                 "**Need more help?** Contact support or check our documentation."
@@ -135,17 +135,17 @@ class FileLinkBot:
         
         @self.bot.on_message(filters.command("dl"))
         async def fdl_command(client: Client, message: Message):
-            """Handle /fdl command - main functionality"""
+            """Handle /dl command - main functionality"""
             try:
                 # Check if this is a reply to a message
                 if not message.reply_to_message:
                     await message.reply_text(
-                        "❌ **Please reply to a file message with `/fdl`**\n\n"
+                        "❌ **Please reply to a file message with `/dl`**\n\n"
                         "📝 **How to use:**\n"
                         "1. Find a message with a video, audio, or document\n"
-                        "2. Reply to that message with `/fdl`\n"
+                        "2. Reply to that message with `/dl`\n"
                         "3. Get your download links!\n\n"
-                        "💡 **Tip:** You can forward files from other chats and then use `/fdl`"
+                        "💡 **Tip:** You can forward files from other chats and then use `/dl`"
                     )
                     return
                 
@@ -174,10 +174,10 @@ class FileLinkBot:
                     )
                     return
                 
-                # Generate file ID and enhanced URLs
+                # Generate file ID and URLs
                 file_id = self.generate_file_id(replied_message)
                 
-                # Import MediaProcessor for enhanced URL generation
+                # Import MediaProcessor for URL generation
                 import sys
                 from pathlib import Path
                 sys.path.insert(0, str(Path(__file__).parent))
@@ -189,7 +189,7 @@ class FileLinkBot:
                 # Get media type info for better display
                 media_info = media_processor.detect_media_type(file_info['name'], file_info['mime_type'])
                 
-                # Create response message with enhanced information
+                # Create response message
                 file_type_emoji = {
                     'video': '🎬',
                     'audio': '🎵',
@@ -201,51 +201,21 @@ class FileLinkBot:
                 
                 emoji = file_type_emoji.get(media_info.get('type', file_info['type']), '📁')
                 
-                # Enhanced response with more features
+                # Simple response with essential information
                 response_text = (
-                    f"{emoji} **Enhanced File Links Generated!**\n\n"
+                    f"{emoji} **File Links Generated!**\n\n"
                     f"📝 **File Name:** `{file_info['name']}`\n"
-                    f"📏 **File Size:** {self.format_file_size(file_info['size'])}\n"
-                    f"🗂️ **File Type:** {file_info['type'].title()}\n"
-                    f"🔗 **MIME Type:** `{file_info['mime_type']}`\n"
-                    f"{'🎵 **Streamable:** Yes' if media_info.get('is_streamable') else '📄 **Streamable:** No'}\n\n"
-                    f"**🔗 Enhanced Links:**\n"
-                    f"📥 **Download:** [With Filename]({enhanced_urls['download_named']})\n"
-                    f"📺 **Stream:** [Direct Stream]({enhanced_urls['stream_named']})\n"
-                    f"🎮 **Player:** [Advanced Player]({enhanced_urls['player_named']})\n"
-                    f"🔗 **Direct:** [Quick Access]({enhanced_urls['direct']})\n\n"
-                    f"**✨ New Features:**\n"
-                    f"• 🎛️ Advanced media controls\n"
-                    f"• ⌨️ Keyboard shortcuts support\n"
-                    f"• 📱 Mobile-optimized interface\n"
-                    f"• 💾 Progress saving & resume\n"
-                    f"• 🔄 Multiple quality options\n"
-                    f"• 📊 File information API\n\n"
-                    f"⚡ **All links are ready to use immediately!**\n"
-                    f"🔒 **Secure streaming with enhanced features**\n\n"
-                    f"💡 **Pro Tip:** Try the Advanced Player for the best experience!"
+                    f"📏 **File Size:** {self.format_file_size(file_info['size'])}\n\n"
+                    f"📥 **Download:** [Click Here]({enhanced_urls['download_named']})\n"
+                    f"📺 **Stream:** [Click Here]({enhanced_urls['stream_named']})\n\n"
+                    f"⚡ Links are ready to use immediately!"
                 )
                 
-                # Enhanced inline keyboard with more options
+                # Simplified inline keyboard with essential buttons only
                 keyboard = InlineKeyboardMarkup([
                     [
                         InlineKeyboardButton("📥 Download", url=enhanced_urls['download_named']),
                         InlineKeyboardButton("📺 Stream", url=enhanced_urls['stream_named'])
-                    ],
-                    [
-                        InlineKeyboardButton("🎮 Advanced Player", url=enhanced_urls['player_named'])
-                    ],
-                    [
-                        InlineKeyboardButton("🔗 Direct Link", url=enhanced_urls['direct']),
-                        InlineKeyboardButton("📊 File Info", url=enhanced_urls['info'])
-                    ],
-                    [
-                        InlineKeyboardButton("📋 Copy Download", callback_data=f"copy_download_{file_id}"),
-                        InlineKeyboardButton("📋 Copy Player", callback_data=f"copy_player_{file_id}")
-                    ],
-                    [
-                        InlineKeyboardButton("🔄 Generate QR", callback_data=f"qr_code_{file_id}"),
-                        InlineKeyboardButton("📤 Share Links", callback_data=f"share_links_{file_id}")
                     ]
                 ])
                 
@@ -275,7 +245,7 @@ class FileLinkBot:
                     help_text = (
                         "📖 **Quick Help**\n\n"
                         "1. Send or forward a file\n"
-                        "2. Reply to it with `/fdl`\n"
+                        "2. Reply to it with `/dl`\n"
                         "3. Get download links!\n\n"
                         "Supported: Videos, Audio, Documents"
                     )
@@ -291,50 +261,6 @@ class FileLinkBot:
                         "Version: 1.0.0"
                     )
                     await callback_query.answer(about_text, show_alert=True)
-                
-                elif data.startswith("copy_download_"):
-                    file_id = data.replace("copy_download_", "")
-                    # We need to get the filename from the original message to generate proper URL
-                    # For now, use the basic URL - this will be enhanced when we have access to file info
-                    download_url = f"{Config.BASE_URL}/download/{file_id}"
-                    await callback_query.answer(f"📋 Download link copied!\n{download_url}\n\n💡 For filename in URL, use the Download button above!", show_alert=True)
-                
-                elif data.startswith("copy_player_"):
-                    file_id = data.replace("copy_player_", "")
-                    player_url = f"{Config.BASE_URL}/play/{file_id}"
-                    await callback_query.answer(f"📋 Advanced Player link copied!\n{player_url}", show_alert=True)
-                
-                elif data.startswith("qr_code_"):
-                    file_id = data.replace("qr_code_", "")
-                    player_url = f"{Config.BASE_URL}/play/{file_id}"
-                    qr_text = (
-                        f"🔗 **QR Code Generated!**\n\n"
-                        f"📱 **Scan to open:** {player_url}\n\n"
-                        f"💡 **Tip:** Use any QR code scanner app to quickly access your file on mobile devices!"
-                    )
-                    await callback_query.answer(qr_text, show_alert=True)
-                
-                elif data.startswith("share_links_"):
-                    file_id = data.replace("share_links_", "")
-                    
-                    # Generate all basic links for sharing (enhanced versions are in the buttons)
-                    download_url = f"{Config.BASE_URL}/download/{file_id}"
-                    stream_url = f"{Config.BASE_URL}/stream/{file_id}"
-                    player_url = f"{Config.BASE_URL}/play/{file_id}"
-                    direct_url = f"{Config.BASE_URL}/direct/{file_id}"
-                    
-                    share_text = (
-                        f"📤 **All Links for File ID: {file_id}**\n\n"
-                        f"📥 **Download:** {download_url}\n\n"
-                        f"📺 **Stream:** {stream_url}\n\n"
-                        f"🎮 **Player:** {player_url}\n\n"
-                        f"🔗 **Direct:** {direct_url}\n\n"
-                        f"💡 Use the buttons above for links with filenames!"
-                    )
-                    await callback_query.answer(share_text, show_alert=True)
-                
-                elif data.startswith("regenerate_"):
-                    await callback_query.answer("🔄 Links are still active! No need to regenerate.", show_alert=True)
                 
             except Exception as e:
                 logger.error(f"Error in callback handler: {e}")
@@ -361,7 +287,7 @@ class FileLinkBot:
             
             logger.info("✅ File-to-Link Bot is fully operational!")
             logger.info(f"🔗 Web server: {Config.BASE_URL}")
-            logger.info("📱 Bot is ready to handle /fdl commands")
+            logger.info("📱 Bot is ready to handle /dl commands")
             
             # Keep the bot running
             await asyncio.Event().wait()

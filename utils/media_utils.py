@@ -1,5 +1,5 @@
 """
-Media utilities for enhanced file processing and metadata extraction
+Media utilities for file processing and metadata extraction
 """
 
 import os
@@ -12,9 +12,9 @@ import logging
 logger = logging.getLogger(__name__)
 
 class MediaProcessor:
-    """Enhanced media processing utilities"""
+    """Media processing utilities"""
     
-    # Supported media types with enhanced metadata
+    # Supported media types
     MEDIA_TYPES = {
         'video': {
             'extensions': ['.mp4', '.mkv', '.avi', '.mov', '.webm', '.flv', '.wmv', '.m4v'],
@@ -66,7 +66,7 @@ class MediaProcessor:
     @classmethod
     def detect_media_type(cls, filename: str, mime_type: str = None) -> Dict[str, Any]:
         """
-        Detect media type and return enhanced metadata
+        Detect media type and return metadata
         """
         filename_lower = filename.lower()
         
@@ -138,7 +138,7 @@ class MediaProcessor:
     
     @classmethod
     def generate_enhanced_urls(cls, file_id: str, filename: str, base_url: str) -> Dict[str, str]:
-        """Generate enhanced URLs with proper filename handling"""
+        """Generate essential URLs for download and streaming"""
         safe_filename = cls.generate_safe_filename(filename)
         encoded_filename = quote(safe_filename, safe='')
         
@@ -147,19 +147,14 @@ class MediaProcessor:
             'download_named': f"{base_url}/download/{file_id}/{encoded_filename}",
             'stream': f"{base_url}/stream/{file_id}",
             'stream_named': f"{base_url}/stream/{file_id}/{encoded_filename}",
-            'player': f"{base_url}/play/{file_id}",
-            'player_named': f"{base_url}/play/{file_id}/{encoded_filename}",
-            'direct': f"{base_url}/direct/{file_id}/{encoded_filename}",
-            'embed': f"{base_url}/embed/{file_id}",
-            'thumbnail': f"{base_url}/thumb/{file_id}",
-            'info': f"{base_url}/info/{file_id}"
+            'direct': f"{base_url}/direct/{file_id}/{encoded_filename}"
         }
         
         return urls
     
     @classmethod
     def extract_file_metadata(cls, message) -> Dict[str, Any]:
-        """Extract comprehensive file metadata from Telegram message"""
+        """Extract file metadata from Telegram message"""
         metadata = {
             'file_id': None,
             'file_name': 'Unknown File',
@@ -241,64 +236,8 @@ class MediaProcessor:
         return metadata
     
     @classmethod
-    def generate_file_hash(cls, file_id: str, file_size: int) -> str:
-        """Generate a unique hash for file identification"""
-        hash_input = f"{file_id}_{file_size}".encode('utf-8')
-        return hashlib.md5(hash_input).hexdigest()[:16]
-    
-    @classmethod
-    def get_quality_options(cls, file_type: str, file_size: int) -> list:
-        """Get available quality options based on file type and size"""
-        options = []
-        
-        if file_type == 'video':
-            if file_size > 100 * 1024 * 1024:  # > 100MB
-                options = [
-                    {'quality': 'original', 'label': 'Original Quality', 'size_factor': 1.0},
-                    {'quality': 'high', 'label': 'High (720p)', 'size_factor': 0.6},
-                    {'quality': 'medium', 'label': 'Medium (480p)', 'size_factor': 0.4},
-                    {'quality': 'low', 'label': 'Low (360p)', 'size_factor': 0.25}
-                ]
-            else:
-                options = [
-                    {'quality': 'original', 'label': 'Original Quality', 'size_factor': 1.0}
-                ]
-        elif file_type == 'audio':
-            if file_size > 10 * 1024 * 1024:  # > 10MB
-                options = [
-                    {'quality': 'original', 'label': 'Original Quality', 'size_factor': 1.0},
-                    {'quality': 'high', 'label': 'High (320kbps)', 'size_factor': 0.8},
-                    {'quality': 'medium', 'label': 'Medium (192kbps)', 'size_factor': 0.5},
-                    {'quality': 'low', 'label': 'Low (128kbps)', 'size_factor': 0.3}
-                ]
-            else:
-                options = [
-                    {'quality': 'original', 'label': 'Original Quality', 'size_factor': 1.0}
-                ]
-        else:
-            options = [
-                {'quality': 'original', 'label': 'Download', 'size_factor': 1.0}
-            ]
-        
-        return options
-    
-    @classmethod
-    def is_mobile_user_agent(cls, user_agent: str) -> bool:
-        """Detect if request is from mobile device"""
-        if not user_agent:
-            return False
-        
-        mobile_indicators = [
-            'Mobile', 'Android', 'iPhone', 'iPad', 'iPod', 
-            'BlackBerry', 'Windows Phone', 'Opera Mini'
-        ]
-        
-        return any(indicator in user_agent for indicator in mobile_indicators)
-    
-    @classmethod
-    def get_streaming_headers(cls, file_type: str, filename: str, file_size: int, 
-                            is_mobile: bool = False) -> Dict[str, str]:
-        """Get optimized headers for streaming"""
+    def get_streaming_headers(cls, file_type: str, filename: str, file_size: int) -> Dict[str, str]:
+        """Get headers for streaming"""
         headers = {
             'Accept-Ranges': 'bytes',
             'Cache-Control': 'public, max-age=3600',
@@ -321,69 +260,4 @@ class MediaProcessor:
         headers['Content-Type'] = mime_type
         headers['Content-Length'] = str(file_size)
         
-        # Mobile optimizations
-        if is_mobile:
-            headers['Cache-Control'] = 'public, max-age=1800'  # Shorter cache for mobile
-            if file_type == 'video':
-                headers['Content-Disposition'] = 'inline'  # Force inline viewing
-        
         return headers
-    
-    @classmethod
-    def validate_file_access(cls, file_id: str, user_ip: str = None) -> bool:
-        """Validate file access permissions (placeholder for future security features)"""
-        # Basic validation - can be extended with rate limiting, IP restrictions, etc.
-        if not file_id or len(file_id) < 5:
-            return False
-        
-        # Add rate limiting logic here if needed
-        # Add IP-based restrictions here if needed
-        
-        return True
-    
-    @classmethod
-    def generate_download_token(cls, file_id: str, expires_in: int = 3600) -> str:
-        """Generate temporary download token for enhanced security"""
-        import time
-        import hmac
-        
-        timestamp = int(time.time()) + expires_in
-        message = f"{file_id}:{timestamp}"
-        
-        # Use a secret key for HMAC (should be from config)
-        secret_key = "your-secret-key-here"  # Should be from Config
-        signature = hmac.new(
-            secret_key.encode(),
-            message.encode(),
-            hashlib.sha256
-        ).hexdigest()[:16]
-        
-        return f"{timestamp}:{signature}"
-    
-    @classmethod
-    def verify_download_token(cls, file_id: str, token: str) -> bool:
-        """Verify download token validity"""
-        try:
-            import time
-            import hmac
-            
-            timestamp_str, signature = token.split(':', 1)
-            timestamp = int(timestamp_str)
-            
-            # Check if token is expired
-            if time.time() > timestamp:
-                return False
-            
-            # Verify signature
-            message = f"{file_id}:{timestamp}"
-            secret_key = "your-secret-key-here"  # Should be from Config
-            expected_signature = hmac.new(
-                secret_key.encode(),
-                message.encode(),
-                hashlib.sha256
-            ).hexdigest()[:16]
-            
-            return hmac.compare_digest(signature, expected_signature)
-            
-        except (ValueError, TypeError):
-            return False
