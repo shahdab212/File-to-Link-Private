@@ -246,25 +246,29 @@ class FileServer:
 async def create_app(bot_client: Client) -> web.Application:
     """Create and configure the AIOHTTP application"""
     app = web.Application()
+    app['bot_client'] = bot_client  # Store bot client in app for access in routes
     file_server = FileServer(bot_client)
     
-    # Add routes
+    # Add routes - both with and without filename
     app.router.add_get('/stream/{file_id}', file_server.stream_file)
+    app.router.add_get('/stream/{file_id}/{filename}', file_server.stream_file)
     app.router.add_get('/download/{file_id}', file_server.download_file)
+    app.router.add_get('/download/{file_id}/{filename}', file_server.download_file)
     
     # Player route
     async def player_page(request):
         file_id = request.match_info.get('file_id', '')
+        if not file_id:
+            return web.Response(text="No file ID provided", status=400)
+            
         try:
-            # Try to read the HTML template
-            template_path = os.path.join(os.path.dirname(__file__), 'templates', 'player.html')
-            if os.path.exists(template_path):
-                with open(template_path, 'r', encoding='utf-8') as f:
-                    html_content = f.read()
-                return web.Response(text=html_content, content_type='text/html')
-            else:
-                # Fallback inline HTML if template file doesn't exist
-                html_content = f"""
+            # Get file info for the player
+            file_server = FileServer(request.app['bot_client'])
+            file_info = await file_server.get_file_info(file_id)
+            file_name = file_info['file_name'] if file_info else f"File_{file_id}"
+            
+            # Create a simple inline HTML player (more reliable than template)
+            html_content = f"""
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -285,7 +289,7 @@ async def create_app(bot_client: Client) -> web.Application:
     <div class="player-container">
         <div class="file-info">
             <h2>File Player</h2>
-            <p>File ID: {file_id}</p>
+            <p>{file_name}</p>
         </div>
         <div id="mediaContainer">
             <video id="videoPlayer" controls style="width: 100%; max-height: 70vh; display: none;">
@@ -331,13 +335,15 @@ async def create_app(bot_client: Client) -> web.Application:
 </body>
 </html>
                 """
-                return web.Response(text=html_content, content_type='text/html')
+            return web.Response(text=html_content, content_type='text/html')
         except Exception as e:
             logger.error(f"Error serving player page: {e}")
             return web.Response(text="Error loading player", status=500)
     
     app.router.add_get('/play/{file_id}', player_page)
+    app.router.add_get('/play/{file_id}/{filename}', player_page)
     app.router.add_get('/player/{file_id}', player_page)
+    app.router.add_get('/player/{file_id}/{filename}', player_page)
     
     # Health check endpoint
     async def health_check(request):

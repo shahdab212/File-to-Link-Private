@@ -50,11 +50,31 @@ class Config:
         return True
     
     @classmethod
-    def get_download_url(cls, file_id: str) -> str:
+    def get_download_url(cls, file_id: str, filename: str = None) -> str:
         """Generate download URL for a file"""
+        if filename:
+            # URL encode the filename and add it as a path parameter
+            import urllib.parse
+            safe_filename = urllib.parse.quote(filename, safe='')
+            return f"{cls.BASE_URL}/download/{file_id}/{safe_filename}"
         return f"{cls.BASE_URL}/download/{file_id}"
     
     @classmethod
-    def get_stream_url(cls, file_id: str) -> str:
+    def get_stream_url(cls, file_id: str, filename: str = None) -> str:
         """Generate streaming URL for a file"""
+        if filename:
+            # URL encode the filename and add it as a path parameter
+            import urllib.parse
+            safe_filename = urllib.parse.quote(filename, safe='')
+            return f"{cls.BASE_URL}/stream/{file_id}/{safe_filename}"
         return f"{cls.BASE_URL}/stream/{file_id}"
+    
+    @classmethod
+    def get_player_url(cls, file_id: str, filename: str = None) -> str:
+        """Generate player URL for a file"""
+        if filename:
+            # URL encode the filename and add it as a path parameter
+            import urllib.parse
+            safe_filename = urllib.parse.quote(filename, safe='')
+            return f"{cls.BASE_URL}/play/{file_id}/{safe_filename}"
+        return f"{cls.BASE_URL}/play/{file_id}"

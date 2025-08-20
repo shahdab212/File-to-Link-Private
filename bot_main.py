@@ -176,9 +176,9 @@ class FileLinkBot:
                 
                 # Generate file ID and URLs
                 file_id = self.generate_file_id(replied_message)
-                download_url = Config.get_download_url(file_id)
-                stream_url = Config.get_stream_url(file_id)
-                player_url = f"{Config.BASE_URL}/play/{file_id}"
+                download_url = Config.get_download_url(file_id, file_info['name'])
+                stream_url = Config.get_stream_url(file_id, file_info['name'])
+                player_url = Config.get_player_url(file_id, file_info['name'])
                 
                 # Create response message
                 file_type_emoji = {
@@ -277,7 +277,7 @@ class FileLinkBot:
                 
                 elif data.startswith("copy_player_"):
                     file_id = data.replace("copy_player_", "")
-                    player_url = f"{Config.BASE_URL}/play/{file_id}"
+                    player_url = Config.get_player_url(file_id)
                     await callback_query.answer(f"📋 Player link copied!\n{player_url}", show_alert=True)
                 
                 elif data.startswith("regenerate_"):
