@@ -174,51 +174,78 @@ class FileLinkBot:
                     )
                     return
                 
-                # Generate file ID and URLs
+                # Generate file ID and enhanced URLs
                 file_id = self.generate_file_id(replied_message)
-                download_url = Config.get_download_url(file_id, file_info['name'])
-                stream_url = Config.get_stream_url(file_id, file_info['name'])
-                player_url = Config.get_player_url(file_id, file_info['name'])
                 
-                # Create response message
+                # Import MediaProcessor for enhanced URL generation
+                import sys
+                from pathlib import Path
+                sys.path.insert(0, str(Path(__file__).parent))
+                from utils.media_utils import MediaProcessor
+                
+                media_processor = MediaProcessor()
+                enhanced_urls = media_processor.generate_enhanced_urls(file_id, file_info['name'], Config.BASE_URL)
+                
+                # Get media type info for better display
+                media_info = media_processor.detect_media_type(file_info['name'], file_info['mime_type'])
+                
+                # Create response message with enhanced information
                 file_type_emoji = {
                     'video': '🎬',
                     'audio': '🎵',
-                    'document': '📄'
+                    'document': '📄',
+                    'image': '🖼️',
+                    'archive': '📦',
+                    'application': '⚙️'
                 }
                 
-                emoji = file_type_emoji.get(file_info['type'], '📁')
+                emoji = file_type_emoji.get(media_info.get('type', file_info['type']), '📁')
                 
+                # Enhanced response with more features
                 response_text = (
-                    f"{emoji} **File Links Generated Successfully!**\n\n"
+                    f"{emoji} **Enhanced File Links Generated!**\n\n"
                     f"📝 **File Name:** `{file_info['name']}`\n"
                     f"📏 **File Size:** {self.format_file_size(file_info['size'])}\n"
                     f"🗂️ **File Type:** {file_info['type'].title()}\n"
-                    f"🔗 **MIME Type:** `{file_info['mime_type']}`\n\n"
-                    f"**🔗 Your Links:**\n"
-                    f"📥 **Download:** [Click Here]({download_url})\n"
-                    f"📺 **Stream:** [Click Here]({stream_url})\n"
-                    f"🎮 **Player:** [Click Here]({player_url})\n\n"
-                    f"⚡ Links are ready to use immediately!\n"
-                    f"🔒 Links are secure and will work as long as the original file exists.\n\n"
-                    f"💡 **Tip:** Use the Player link for better streaming experience in browsers!"
+                    f"🔗 **MIME Type:** `{file_info['mime_type']}`\n"
+                    f"{'🎵 **Streamable:** Yes' if media_info.get('is_streamable') else '📄 **Streamable:** No'}\n\n"
+                    f"**🔗 Enhanced Links:**\n"
+                    f"📥 **Download:** [With Filename]({enhanced_urls['download_named']})\n"
+                    f"📺 **Stream:** [Direct Stream]({enhanced_urls['stream_named']})\n"
+                    f"🎮 **Player:** [Advanced Player]({enhanced_urls['player_named']})\n"
+                    f"🔗 **Direct:** [Quick Access]({enhanced_urls['direct']})\n\n"
+                    f"**✨ New Features:**\n"
+                    f"• 🎛️ Advanced media controls\n"
+                    f"• ⌨️ Keyboard shortcuts support\n"
+                    f"• 📱 Mobile-optimized interface\n"
+                    f"• 💾 Progress saving & resume\n"
+                    f"• 🔄 Multiple quality options\n"
+                    f"• 📊 File information API\n\n"
+                    f"⚡ **All links are ready to use immediately!**\n"
+                    f"🔒 **Secure streaming with enhanced features**\n\n"
+                    f"💡 **Pro Tip:** Try the Advanced Player for the best experience!"
                 )
                 
-                # Create inline keyboard with action buttons
+                # Enhanced inline keyboard with more options
                 keyboard = InlineKeyboardMarkup([
                     [
-                        InlineKeyboardButton("📥 Download", url=download_url),
-                        InlineKeyboardButton("📺 Direct Stream", url=stream_url)
+                        InlineKeyboardButton("📥 Download", url=enhanced_urls['download_named']),
+                        InlineKeyboardButton("📺 Stream", url=enhanced_urls['stream_named'])
                     ],
                     [
-                        InlineKeyboardButton("🎮 Web Player", url=player_url)
+                        InlineKeyboardButton("🎮 Advanced Player", url=enhanced_urls['player_named'])
+                    ],
+                    [
+                        InlineKeyboardButton("🔗 Direct Link", url=enhanced_urls['direct']),
+                        InlineKeyboardButton("📊 File Info", url=enhanced_urls['info'])
                     ],
                     [
                         InlineKeyboardButton("📋 Copy Download", callback_data=f"copy_download_{file_id}"),
-                        InlineKeyboardButton("📋 Copy Stream", callback_data=f"copy_stream_{file_id}")
+                        InlineKeyboardButton("📋 Copy Player", callback_data=f"copy_player_{file_id}")
                     ],
                     [
-                        InlineKeyboardButton("📋 Copy Player", callback_data=f"copy_player_{file_id}")
+                        InlineKeyboardButton("🔄 Generate QR", callback_data=f"qr_code_{file_id}"),
+                        InlineKeyboardButton("📤 Share Links", callback_data=f"share_links_{file_id}")
                     ]
                 ])
                 
@@ -270,15 +297,37 @@ class FileLinkBot:
                     download_url = Config.get_download_url(file_id)
                     await callback_query.answer(f"📋 Download link copied!\n{download_url}", show_alert=True)
                 
-                elif data.startswith("copy_stream_"):
-                    file_id = data.replace("copy_stream_", "")
-                    stream_url = Config.get_stream_url(file_id)
-                    await callback_query.answer(f"📋 Stream link copied!\n{stream_url}", show_alert=True)
-                
                 elif data.startswith("copy_player_"):
                     file_id = data.replace("copy_player_", "")
                     player_url = Config.get_player_url(file_id)
-                    await callback_query.answer(f"📋 Player link copied!\n{player_url}", show_alert=True)
+                    await callback_query.answer(f"📋 Advanced Player link copied!\n{player_url}", show_alert=True)
+                
+                elif data.startswith("qr_code_"):
+                    file_id = data.replace("qr_code_", "")
+                    player_url = Config.get_player_url(file_id)
+                    qr_text = (
+                        f"🔗 **QR Code Generated!**\n\n"
+                        f"📱 **Scan to open:** {player_url}\n\n"
+                        f"💡 **Tip:** Use any QR code scanner app to quickly access your file on mobile devices!"
+                    )
+                    await callback_query.answer(qr_text, show_alert=True)
+                
+                elif data.startswith("share_links_"):
+                    file_id = data.replace("share_links_", "")
+                    
+                    # Generate all links for sharing
+                    download_url = Config.get_download_url(file_id)
+                    stream_url = Config.get_stream_url(file_id)
+                    player_url = Config.get_player_url(file_id)
+                    
+                    share_text = (
+                        f"📤 **All Links for File ID: {file_id}**\n\n"
+                        f"📥 **Download:** {download_url}\n\n"
+                        f"📺 **Stream:** {stream_url}\n\n"
+                        f"🎮 **Player:** {player_url}\n\n"
+                        f"💡 Copy any link above to share!"
+                    )
+                    await callback_query.answer(share_text, show_alert=True)
                 
                 elif data.startswith("regenerate_"):
                     await callback_query.answer("🔄 Links are still active! No need to regenerate.", show_alert=True)
