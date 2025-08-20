@@ -101,6 +101,13 @@ class EnhancedFileServer:
             if file_info['file_size'] > Config.MAX_FILE_SIZE:
                 raise web.HTTPBadRequest(text="File too large")
             
+            # If no filename in URL, redirect to URL with filename for better SEO and user experience
+            if not filename:
+                from urllib.parse import quote
+                safe_filename = quote(file_info['file_name'], safe='')
+                redirect_url = f"/stream/{file_id}/{safe_filename}"
+                raise web.HTTPFound(location=redirect_url)
+            
             # Detect mobile user agent
             user_agent = request.headers.get('User-Agent', '')
             is_mobile = self.media_processor.is_mobile_user_agent(user_agent)
@@ -157,6 +164,13 @@ class EnhancedFileServer:
             # Check file size limit
             if file_info['file_size'] > Config.MAX_FILE_SIZE:
                 raise web.HTTPBadRequest(text="File too large")
+            
+            # If no filename in URL, redirect to URL with filename
+            if not filename:
+                from urllib.parse import quote
+                safe_filename = quote(file_info['file_name'], safe='')
+                redirect_url = f"/download/{file_id}/{safe_filename}"
+                raise web.HTTPFound(location=redirect_url)
             
             # Use provided filename or original filename
             download_filename = unquote(filename) if filename else file_info['file_name']
@@ -331,6 +345,13 @@ async def create_app(bot_client: Client) -> web.Application:
             file_info = await file_server.get_file_info(file_id)
             if not file_info:
                 return web.Response(text="File not found", status=404)
+            
+            # If no filename in URL, redirect to URL with filename for better SEO and user experience
+            if not filename:
+                from urllib.parse import quote
+                safe_filename = quote(file_info['file_name'], safe='')
+                redirect_url = f"/play/{file_id}/{safe_filename}"
+                raise web.HTTPFound(location=redirect_url)
             
             # Prepare template context
             context = {

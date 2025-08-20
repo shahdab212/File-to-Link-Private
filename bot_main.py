@@ -294,17 +294,19 @@ class FileLinkBot:
                 
                 elif data.startswith("copy_download_"):
                     file_id = data.replace("copy_download_", "")
-                    download_url = Config.get_download_url(file_id)
-                    await callback_query.answer(f"📋 Download link copied!\n{download_url}", show_alert=True)
+                    # We need to get the filename from the original message to generate proper URL
+                    # For now, use the basic URL - this will be enhanced when we have access to file info
+                    download_url = f"{Config.BASE_URL}/download/{file_id}"
+                    await callback_query.answer(f"📋 Download link copied!\n{download_url}\n\n💡 For filename in URL, use the Download button above!", show_alert=True)
                 
                 elif data.startswith("copy_player_"):
                     file_id = data.replace("copy_player_", "")
-                    player_url = Config.get_player_url(file_id)
+                    player_url = f"{Config.BASE_URL}/play/{file_id}"
                     await callback_query.answer(f"📋 Advanced Player link copied!\n{player_url}", show_alert=True)
                 
                 elif data.startswith("qr_code_"):
                     file_id = data.replace("qr_code_", "")
-                    player_url = Config.get_player_url(file_id)
+                    player_url = f"{Config.BASE_URL}/play/{file_id}"
                     qr_text = (
                         f"🔗 **QR Code Generated!**\n\n"
                         f"📱 **Scan to open:** {player_url}\n\n"
@@ -315,17 +317,19 @@ class FileLinkBot:
                 elif data.startswith("share_links_"):
                     file_id = data.replace("share_links_", "")
                     
-                    # Generate all links for sharing
-                    download_url = Config.get_download_url(file_id)
-                    stream_url = Config.get_stream_url(file_id)
-                    player_url = Config.get_player_url(file_id)
+                    # Generate all basic links for sharing (enhanced versions are in the buttons)
+                    download_url = f"{Config.BASE_URL}/download/{file_id}"
+                    stream_url = f"{Config.BASE_URL}/stream/{file_id}"
+                    player_url = f"{Config.BASE_URL}/play/{file_id}"
+                    direct_url = f"{Config.BASE_URL}/direct/{file_id}"
                     
                     share_text = (
                         f"📤 **All Links for File ID: {file_id}**\n\n"
                         f"📥 **Download:** {download_url}\n\n"
                         f"📺 **Stream:** {stream_url}\n\n"
                         f"🎮 **Player:** {player_url}\n\n"
-                        f"💡 Copy any link above to share!"
+                        f"🔗 **Direct:** {direct_url}\n\n"
+                        f"💡 Use the buttons above for links with filenames!"
                     )
                     await callback_query.answer(share_text, show_alert=True)
                 
