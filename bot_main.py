@@ -138,9 +138,6 @@ class FileLinkBot:
     async def setup_handlers(self):
         """Setup all bot command and message handlers"""
         
-    async def setup_handlers(self):
-        """Setup all bot command and message handlers"""
-        
         @self.bot.on_message(filters.command("start"))
         async def start_command(client: Client, message: Message):
             """Handle /start command"""
@@ -155,32 +152,6 @@ class FileLinkBot:
                 )
                 return
             
-            welcome_text = (
-                "🤖 **Welcome to File-to-Link Bot!**\n\n"
-                "📁 I can generate direct download and streaming links for your Telegram files.\n\n"
-                "**How to use:**\n"
-                "1. Forward or send any video, audio, or document file\n"
-                "2. Reply to that message with `/dl`, `/dlink`, `.dl`, or `.dlink`\n"
-                "3. Get instant download and streaming links!\n\n"
-                "**Supported files:**\n"
-                "• 📹 Videos (up to 4GB)\n"
-                "• 🎵 Audio files\n"
-                "• 📄 Documents\n\n"
-                "**Features:**\n"
-                "• ⚡ Fast streaming without downloading\n"
-                "• 📱 Mobile-friendly links\n"
-                "• 🔒 Secure file handling\n\n"
-                "Try it now by sending a file and replying with any download command!"
-            )
-            
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("📖 Help", callback_data="help")],
-                [InlineKeyboardButton("ℹ️ About", callback_data="about")]
-            ])
-            
-            await message.reply_text(welcome_text, reply_markup=keyboard)
-        async def start_command(client: Client, message: Message):
-            """Handle /start command"""
             welcome_text = (
                 "🤖 **Welcome to File-to-Link Bot!**\n\n"
                 "📁 I can generate direct download and streaming links for your Telegram files.\n\n"
