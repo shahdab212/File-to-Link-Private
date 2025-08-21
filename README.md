@@ -7,11 +7,13 @@ A high-performance Telegram bot that generates direct download and streaming lin
 - 🚀 **High Performance**: Built with Pyrogram and AIOHTTP for optimal speed
 - 📁 **Large File Support**: Handles files up to 4GB
 - 🎬 **Smart Streaming**: Direct streaming without downloading to server disk
-- 📱 **Mobile Friendly**: Responsive links that work on all devices
+- 📱 **Mobile Friendly**: Responsive web player with modern UI
 - 🔒 **Secure**: Environment-based configuration and secure file handling
 - ⚡ **Fast Response**: Instant link generation with caching
 - 🎯 **Range Requests**: Supports HTTP range requests for video streaming
 - 📊 **Production Ready**: Comprehensive logging and error handling
+- 🔐 **Channel Protection**: Requires users to join specified channel
+- 📤 **Media Group Forwarding**: Automatically forwards processed files to media group
 
 ## 🎯 Supported File Types
 
@@ -53,113 +55,60 @@ A high-performance Telegram bot that generates direct download and streaming lin
    python bot_main.py
    ```
 
-## 🌐 Deployment on Render
+## 🐳 Docker Deployment
 
-### Method 1: GitHub Integration (Recommended)
-
-1. **Prepare Repository**:
-   - Push your code to GitHub
-   - Ensure all files are committed
-
-2. **Create Render Service**:
-   - Go to [render.com](https://render.com)
-   - Click "New +" → "Web Service"
-   - Connect your GitHub repository
-   - Select the repository containing your bot
-
-3. **Configure Service**:
-   ```
-   Name: telegram-file-bot
-   Environment: Python 3
-   Build Command: pip install -r requirements.txt
-   Start Command: python bot_main.py
+1. **Build Docker Image**:
+   ```bash
+   docker build -t telegram-file-bot .
    ```
 
-4. **Set Environment Variables**:
-   ```
-   API_ID=your_api_id
-   API_HASH=your_api_hash
-   BOT_TOKEN=your_bot_token
-   BASE_URL=https://your-app-name.onrender.com
-   SECRET_KEY=your-secret-key
-   HOST=0.0.0.0
-   PORT=10000
+2. **Run Container**:
+   ```bash
+   docker run -d \
+     --name telegram-file-bot \
+     -p 8080:8080 \
+     --env-file .env \
+     telegram-file-bot
    ```
 
-5. **Deploy**:
-   - Click "Create Web Service"
-   - Wait for deployment to complete
-   - Your bot will be live at `https://your-app-name.onrender.com`
+## 🚀 Heroku Deployment
 
-### Method 2: Manual Deployment
+1. **Install Heroku CLI** and login to your account
 
-1. **Create Web Service**:
-   - Go to Render Dashboard
-   - Click "New +" → "Web Service"
-   - Choose "Deploy from Git repository"
-
-2. **Repository Settings**:
-   ```
-   Repository URL: <your-git-repo-url>
-   Branch: main
-   Root Directory: (leave empty)
+2. **Create Heroku App**:
+   ```bash
+   heroku create your-app-name
    ```
 
-3. **Build Settings**:
-   ```
-   Environment: Python 3
-   Python Version: 3.11.0
-   Build Command: pip install -r requirements.txt
-   Start Command: python bot_main.py
-   ```
-
-4. **Advanced Settings**:
-   ```
-   Health Check Path: /health
-   Auto-Deploy: Yes
+3. **Set Environment Variables**:
+   ```bash
+   heroku config:set API_ID=your_api_id
+   heroku config:set API_HASH=your_api_hash
+   heroku config:set BOT_TOKEN=your_bot_token
+   heroku config:set BASE_URL=https://your-app-name.herokuapp.com
+   # Add other environment variables as needed
    ```
 
-### Environment Variables Setup
-
-In your Render service settings, add these environment variables:
-
-| Variable | Description | Example |
-|----------|-------------|---------|
-| `API_ID` | Telegram API ID | `1234567` |
-| `API_HASH` | Telegram API Hash | `abcdef1234567890...` |
-| `BOT_TOKEN` | Bot token from BotFather | `1234567890:ABCdef...` |
-| `BASE_URL` | Your Render app URL | `https://mybot.onrender.com` |
-| `SECRET_KEY` | Random secret key | `my-secret-key-2024` |
-| `HOST` | Server host | `0.0.0.0` |
-| `PORT` | Server port | `10000` |
-
-### Post-Deployment Steps
-
-1. **Verify Deployment**:
-   - Check Render logs for successful startup
-   - Visit `https://your-app-name.onrender.com/health`
-   - Should return: `{"status": "healthy", "service": "telegram-file-bot"}`
-
-2. **Test Bot**:
-   - Send `/start` to your bot on Telegram
-   - Upload a test file
-   - Reply with `/fdl`
-   - Verify links work correctly
+4. **Deploy**:
+   ```bash
+   git push heroku main
+   ```
 
 ## 📱 How to Use
 
 1. **Start the Bot**:
    - Send `/start` to your bot on Telegram
+   - Join the required channel if prompted
    - Read the welcome message
 
 2. **Generate Links**:
    - Send any video, audio, or document file to the bot
-   - Reply to that file message with `/fdl`
+   - Reply to that file message with `/dl`, `/dlink`, `.dl`, or `.dlink`
    - Get instant download and streaming links!
 
 3. **Use the Links**:
-   - Click "Download" for direct file download
-   - Click "Stream" for in-browser streaming
+   - Click "📥 Download" for direct file download
+   - Click "📺 Stream" for web player streaming
    - Links work on all devices and browsers
 
 ## 🏗️ Project Structure
@@ -169,10 +118,13 @@ telegram-file-bot/
 ├── bot_main.py          # Main bot logic and command handlers
 ├── web_server.py        # AIOHTTP web server for file serving
 ├── config.py           # Configuration and environment management
+├── utils/
+│   └── media_utils.py  # Media processing utilities
 ├── requirements.txt    # Python dependencies
 ├── .env.example       # Environment variables template
-├── render.yaml        # Render deployment configuration
-└── README.md          # This file
+├── Dockerfile         # Docker configuration
+├── Procfile          # Heroku deployment configuration
+└── README.md         # This file
 ```
 
 ## 🔧 Configuration Options
@@ -192,6 +144,8 @@ telegram-file-bot/
 | `CHUNK_SIZE` | `1048576` | Streaming chunk size (1MB) |
 | `LOG_LEVEL` | `INFO` | Logging level |
 | `SESSION_NAME` | `file_bot_session` | Pyrogram session name |
+| `TELEGRAM_CHANNEL` | Optional | Channel users must join |
+| `MEDIA_GROUP_ID` | Optional | Media group for file forwarding |
 
 ### File Size Limits
 
@@ -201,6 +155,23 @@ telegram-file-bot/
 
 ## 🛠️ Advanced Features
 
+### Web Player
+- Modern HTML5 video/audio player with glassmorphism UI
+- Keyboard shortcuts (Space, Arrow keys) for media control
+- Copy-to-clipboard functionality with visual feedback
+- Mobile-responsive design for all screen sizes
+- Automatic file type detection and appropriate player selection
+
+### Channel Protection
+- Requires users to join specified channel before using the bot
+- Supports both channel usernames and invite links
+- Automatic membership verification on each command
+
+### Media Group Forwarding
+- Automatically forwards processed files to specified media group
+- Includes detailed file information and user details
+- Provides generated links for monitoring purposes
+
 ### HTTP Range Requests
 The bot supports HTTP range requests, enabling:
 - Video seeking in browsers
@@ -208,59 +179,46 @@ The bot supports HTTP range requests, enabling:
 - Bandwidth optimization
 - Better mobile experience
 
-### Caching System
-- In-memory file metadata caching
-- 5-minute cache expiration
-- Reduces Telegram API calls
-- Improves response times
-
 ### Error Handling
 - Comprehensive error logging
 - User-friendly error messages
 - Automatic retry mechanisms
 - Graceful degradation
 
-## 🔍 Monitoring and Logs
+## 🔍 Monitoring and Health Checks
 
-### Health Check
+### Health Check Endpoint
 - Endpoint: `GET /health`
 - Returns: `{"status": "healthy", "service": "telegram-file-bot"}`
 
-### Log Levels
-- `DEBUG`: Detailed debugging information
-- `INFO`: General operational messages
-- `WARNING`: Warning messages
-- `ERROR`: Error messages
-
-### Render Logs
-Access logs in your Render dashboard:
-1. Go to your service
-2. Click "Logs" tab
-3. Monitor real-time logs
+### Available Commands
+- `/start` - Start the bot and show welcome message
+- `/help` - Show detailed help information
+- `/dl`, `/dlink`, `.dl`, `.dlink` - Generate download links (reply to file)
 
 ## 🚨 Troubleshooting
 
 ### Common Issues
 
 1. **Bot not responding**:
-   - Check environment variables
-   - Verify bot token is correct
-   - Check Render service logs
+   - Check environment variables are set correctly
+   - Verify bot token is valid
+   - Check application logs
 
 2. **Links not working**:
    - Verify `BASE_URL` is set correctly
-   - Check if web server is running
-   - Ensure port configuration is correct
+   - Check if web server is running on correct port
+   - Ensure firewall allows traffic on specified port
 
 3. **File not found errors**:
    - Original message may be deleted
    - File may have expired on Telegram
-   - Check file permissions
+   - Check file permissions and access
 
-4. **Large file issues**:
-   - Verify file size is under limit
-   - Check available memory/bandwidth
-   - Monitor streaming performance
+4. **Channel membership issues**:
+   - Verify `TELEGRAM_CHANNEL` is set correctly
+   - Check channel username format (@channel or https://t.me/channel)
+   - Ensure bot has access to check membership
 
 ### Debug Mode
 
@@ -270,33 +228,14 @@ export LOG_LEVEL=DEBUG
 python bot_main.py
 ```
 
-## 📊 Performance Optimization
-
-### For High Traffic
-
-1. **Increase Resources**:
-   - Upgrade Render plan
-   - Increase memory allocation
-   - Use faster disk storage
-
-2. **Optimize Configuration**:
-   ```bash
-   CHUNK_SIZE=2097152  # 2MB chunks
-   MAX_FILE_SIZE=2147483648  # 2GB limit
-   ```
-
-3. **Monitor Usage**:
-   - Check Render metrics
-   - Monitor response times
-   - Track error rates
-
 ## 🔒 Security Considerations
 
-1. **Environment Variables**: Never commit sensitive data
-2. **Secret Key**: Use a strong, unique secret key
+1. **Environment Variables**: Never commit sensitive data to version control
+2. **Secret Key**: Use a strong, unique secret key for production
 3. **File Access**: Links are temporary and secure
-4. **Rate Limiting**: Built-in Telegram rate limiting
-5. **HTTPS**: Always use HTTPS in production
+4. **Rate Limiting**: Built-in Telegram rate limiting protection
+5. **HTTPS**: Always use HTTPS in production environments
+6. **Channel Protection**: Restrict bot access to channel members only
 
 ## 📝 License
 
@@ -320,7 +259,6 @@ This project is licensed under the MIT License. See LICENSE file for details.
 
 - [Pyrogram](https://github.com/pyrogram/pyrogram) - Modern Telegram MTProto API framework
 - [AIOHTTP](https://github.com/aio-libs/aiohttp) - Asynchronous HTTP client/server framework
-- [Render](https://render.com) - Cloud platform for hosting
 
 ---
 
