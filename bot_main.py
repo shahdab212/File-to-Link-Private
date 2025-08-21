@@ -106,17 +106,33 @@ class FileLinkBot:
         
         try:
             # Create media group message
+            user_name = message.from_user.first_name
+            if message.from_user.last_name:
+                user_name += f" {message.from_user.last_name}"
+            
+            # Check if file is streamable for proper formatting
+            is_streamable = MediaProcessor.is_streamable(file_info['name'], file_info.get('mime_type', ''))
+            
+            if is_streamable:
+                links_text = (
+                    f"🔗 **Links:**\n"
+                    f"📥 Download: `{enhanced_urls['download_named']}`\n\n"
+                    f"🎵 Stream: `{enhanced_urls['stream_named']}`"
+                )
+            else:
+                links_text = (
+                    f"🔗 **Links:**\n"
+                    f"📥 Download: `{enhanced_urls['download_named']}`"
+                )
+            
             media_text = (
                 f"📁 **New File Processed**\n\n"
-                f"👤 **User:** {message.from_user.first_name}"
-                f"{' ' + message.from_user.last_name if message.from_user.last_name else ''}\n"
+                f"👤 **User:** [{user_name}](tg://user?id={message.from_user.id})\n"
                 f"🆔 **User ID:** `{message.from_user.id}`\n"
                 f"📝 **File Name:** {file_info['name']}\n"
                 f"📏 **File Size:** {self.format_file_size(file_info['size'])}\n"
                 f"🗂️ **File Type:** {file_info['type'].capitalize()}\n\n"
-                f"🔗 **Links:**\n"
-                f"📥 Download: {enhanced_urls['download_named']}\n\n"
-                f"📺 Web Player: {enhanced_urls['play_named']}"
+                f"{links_text}"
             )
             
             # Send the file directly without forwarding (removes forwarder sender name)
@@ -321,18 +337,18 @@ class FileLinkBot:
                 # Add streamable info and links only for streamable files
                 if is_streamable:
                     response_text += f"🎵 **Streamable:** Yes\n\n"
-                    response_text += f"📥 **Download:** {enhanced_urls['download_named']}\n\n"
-                    response_text += f"📺 **Web Player:** {enhanced_urls['play_named']}\n\n"
-                    response_text += f"💡 **Tip:** Use the Stream button for web player or copy the Direct Stream URL for VLC"
+                    response_text += f"📥 **Download:** `{enhanced_urls['download_named']}`\n\n"
+                    response_text += f"🎵 **Stream:** `{enhanced_urls['stream_named']}`\n\n"
+                    response_text += f"💡 **Tip:** Use the Web Stream button for web player or copy the Stream URL for VLC"
                 else:
-                    response_text += f"\n📥 **Download:** {enhanced_urls['download_named']}"
+                    response_text += f"\n📥 **Download:** `{enhanced_urls['download_named']}`"
                 
                 # Create keyboard based on file type
                 if is_streamable:
                     keyboard = InlineKeyboardMarkup([
                         [
                             InlineKeyboardButton("📥 Download", url=enhanced_urls['download_named']),
-                            InlineKeyboardButton("📺 Stream", url=enhanced_urls['play_named'])
+                            InlineKeyboardButton("📺 Web Stream", url=enhanced_urls['play_named'])
                         ]
                     ])
                 else:
