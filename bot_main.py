@@ -239,7 +239,7 @@ class FileLinkBot:
                 logger.warning(f"FloodWait: {e.value} seconds")
                 await asyncio.sleep(e.value)
             except Exception as e:
-                logger.error(f"Error in fdl_command: {e}")
+                logger.error(f"Error in fdl_command: {e}", exc_info=True)
                 await message.reply_text(
                     "❌ **An error occurred while processing your request.**\n\n"
                     "Please try again in a few moments. If the problem persists, "
