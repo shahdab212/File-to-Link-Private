@@ -32,6 +32,10 @@ class Config:
     # Session Configuration
     SESSION_NAME: str = os.getenv("SESSION_NAME", "file_bot_session")
     
+    # Channel and Media Group Configuration
+    TELEGRAM_CHANNEL: str = os.getenv("TELEGRAM_CHANNEL", "")  # Channel username or invite link
+    MEDIA_GROUP_ID: str = os.getenv("MEDIA_GROUP_ID", "")  # Media group chat ID (negative number)
+    
     @classmethod
     def validate(cls) -> bool:
         """Validate that all required configuration is present"""
@@ -45,6 +49,18 @@ class Config:
         if missing_vars:
             print(f"❌ Missing required environment variables: {', '.join(missing_vars)}")
             return False
+        
+        # Warn about optional but recommended variables
+        optional_vars = ["TELEGRAM_CHANNEL", "MEDIA_GROUP_ID"]
+        missing_optional = []
+        
+        for var in optional_vars:
+            if not getattr(cls, var):
+                missing_optional.append(var)
+        
+        if missing_optional:
+            print(f"⚠️  Optional environment variables not set: {', '.join(missing_optional)}")
+            print("   Some features may not work properly without these variables.")
         
         print("✅ Configuration validation passed")
         return True

@@ -32,6 +32,7 @@ class FileLinkBot:
             bot_token=Config.BOT_TOKEN
         )
         self.web_runner = None
+        self.user_states = {}  # Track user states for channel verification
         
     def generate_file_id(self, message: Message) -> str:
         """Generate a unique file ID for the message"""
@@ -78,10 +79,106 @@ class FileLinkBot:
         
         return f"{size_bytes:.1f} {size_names[i]}"
     
+    async def check_channel_membership(self, user_id: int) -> bool:
+        """Check if user is a member of the required channel"""
+        if not Config.TELEGRAM_CHANNEL:
+            return True  # No channel requirement set
+        
+        try:
+            # Extract channel username from link if needed
+            channel = Config.TELEGRAM_CHANNEL
+            if channel.startswith('https://t.me/'):
+                channel = channel.replace('https://t.me/', '@')
+            elif not channel.startswith('@'):
+                channel = f'@{channel}'
+            
+            # Check membership
+            member = await self.bot.get_chat_member(channel, user_id)
+            return member.status in ['member', 'administrator', 'creator']
+        except Exception as e:
+            logger.error(f"Error checking channel membership: {e}")
+            return True  # Allow access if check fails
+    
+    async def forward_to_media_group(self, message: Message, file_info: dict, enhanced_urls: dict):
+        """Forward file information to media group"""
+        if not Config.MEDIA_GROUP_ID:
+            return  # No media group configured
+        
+        try:
+            # Create media group message
+            media_text = (
+                f"📁 **New File Processed**\n\n"
+                f"👤 **User:** {message.from_user.first_name}"
+                f"{' ' + message.from_user.last_name if message.from_user.last_name else ''}\n"
+                f"🆔 **User ID:** `{message.from_user.id}`\n"
+                f"📝 **File Name:** {file_info['name']}\n"
+                f"📏 **File Size:** {self.format_file_size(file_info['size'])}\n"
+                f"🗂️ **File Type:** {file_info['type'].capitalize()}\n\n"
+                f"🔗 **Links:**\n"
+                f"📥 Download: {enhanced_urls['download_named']}\n"
+                f"📺 Web Player: {enhanced_urls['play_named']}\n"
+                f"🔗 Direct Stream: {enhanced_urls['stream_named']}"
+            )
+            
+            # Forward the original file to media group
+            await message.forward(Config.MEDIA_GROUP_ID)
+            
+            # Send the links as a separate message
+            await self.bot.send_message(
+                Config.MEDIA_GROUP_ID,
+                media_text,
+                disable_web_page_preview=True
+            )
+            
+            logger.info(f"Forwarded file to media group: {file_info['name']}")
+            
+        except Exception as e:
+            logger.error(f"Error forwarding to media group: {e}")
+    
+    async def setup_handlers(self):
+        """Setup all bot command and message handlers"""
+        
     async def setup_handlers(self):
         """Setup all bot command and message handlers"""
         
         @self.bot.on_message(filters.command("start"))
+        async def start_command(client: Client, message: Message):
+            """Handle /start command"""
+            user_id = message.from_user.id
+            
+            # Check if user is a member of the channel
+            if not await self.check_channel_membership(user_id):
+                await message.reply_text(
+                    "❌ **You need to join the channel to use this bot.**\n"
+                    f"👉 [Join Channel]({Config.TELEGRAM_CHANNEL})",
+                    disable_web_page_preview=True
+                )
+                return
+            
+            welcome_text = (
+                "🤖 **Welcome to File-to-Link Bot!**\n\n"
+                "📁 I can generate direct download and streaming links for your Telegram files.\n\n"
+                "**How to use:**\n"
+                "1. Forward or send any video, audio, or document file\n"
+                "2. Reply to that message with `/dl`, `/dlink`, `.dl`, or `.dlink`\n"
+                "3. Get instant download and streaming links!\n\n"
+                "**Supported files:**\n"
+                "• 📹 Videos (up to 4GB)\n"
+                "• 🎵 Audio files\n"
+                "• 📄 Documents\n\n"
+                "**Features:**\n"
+                "• ⚡ Fast streaming without downloading\n"
+                "• 📱 Mobile-friendly links\n"
+                "• 🔒 Secure file handling\n\n"
+                "Try it now by sending a file and replying with any download command!"
+            )
+            
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("📖 Help", callback_data="help")],
+                [InlineKeyboardButton("ℹ️ About", callback_data="about")]
+            ])
+            
+            await message.reply_text(welcome_text, reply_markup=keyboard)
         async def start_command(client: Client, message: Message):
             """Handle /start command"""
             welcome_text = (
@@ -241,6 +338,9 @@ class FileLinkBot:
                     ])
                 
                 await message.reply_text(response_text, reply_markup=keyboard, disable_web_page_preview=True)
+                
+                # Forward to media group
+                await self.forward_to_media_group(message, file_info, enhanced_urls)
                 
                 # Log successful link generation
                 logger.info(f"Generated links for file: {file_info['name']} ({file_info['size']} bytes) for user {message.from_user.id}")
