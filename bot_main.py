@@ -12,6 +12,7 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import FloodWait, MessageNotModified
 from config import Config
 from web_server import start_web_server
+from utils.media_utils import MediaProcessor
 
 # Configure logging
 logging.basicConfig(
@@ -177,23 +178,30 @@ class FileLinkBot:
                 # Generate file ID and URLs
                 file_id = self.generate_file_id(replied_message)
                 
-                # Import MediaProcessor for URL generation
-                import sys
-                from pathlib import Path
-                sys.path.insert(0, str(Path(__file__).parent))
-                from utils.media_utils import MediaProcessor
-                
-                media_processor = MediaProcessor()
-                enhanced_urls = media_processor.generate_enhanced_urls(file_id, file_info['name'], Config.BASE_URL)
-                
-                # Get media type info for better display
-                media_info = media_processor.detect_media_type(file_info['name'], file_info['mime_type'])
-                
-                # Get file type display name
-                file_type_display = media_processor.get_file_type_display(file_info['name'], file_info['mime_type'])
-                
-                # Check if file is streamable
-                is_streamable = media_processor.is_streamable(file_info['name'], file_info['mime_type'])
+                # Generate URLs and get file info
+                try:
+                    # Generate URLs
+                    enhanced_urls = MediaProcessor.generate_enhanced_urls(file_id, file_info['name'], Config.BASE_URL)
+                    
+                    # Get file type display name
+                    file_type_display = MediaProcessor.get_file_type_display(file_info['name'], file_info['mime_type'])
+                    
+                    # Check if file is streamable
+                    is_streamable = MediaProcessor.is_streamable(file_info['name'], file_info['mime_type'])
+                    
+                except Exception as media_error:
+                    logger.error(f"Error processing media: {media_error}")
+                    # Fallback to basic functionality
+                    from urllib.parse import quote
+                    safe_filename = quote(file_info['name'], safe='')
+                    enhanced_urls = {
+                        'download_named': f"{Config.BASE_URL}/download/{file_id}/{safe_filename}",
+                        'stream_named': f"{Config.BASE_URL}/stream/{file_id}/{safe_filename}",
+                        'vlc_android': f"intent:{Config.BASE_URL}/stream/{file_id}/{safe_filename}#Intent;package=org.videolan.vlc;type=video/*;category=android.intent.category.DEFAULT;scheme=http;end",
+                        'vlc_desktop': f"vlc://{Config.BASE_URL}/stream/{file_id}/{safe_filename}"
+                    }
+                    file_type_display = file_info['type'].capitalize()
+                    is_streamable = file_info['type'] in ['video', 'audio']
                 
                 # Create response message with new format
                 response_text = (
