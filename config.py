@@ -78,3 +78,27 @@ class Config:
             safe_filename = urllib.parse.quote(filename, safe='')
             return f"{cls.BASE_URL}/play/{file_id}/{safe_filename}"
         return f"{cls.BASE_URL}/play/{file_id}"
+    
+    @classmethod
+    def get_vlc_android_url(cls, file_id: str, filename: str = None) -> str:
+        """Generate VLC Android intent URL for a file"""
+        if filename:
+            import urllib.parse
+            safe_filename = urllib.parse.quote(filename, safe='')
+            stream_url = f"{cls.BASE_URL}/stream/{file_id}/{safe_filename}"
+        else:
+            stream_url = f"{cls.BASE_URL}/stream/{file_id}"
+        
+        return f"intent:{stream_url}#Intent;package=org.videolan.vlc;type=video/*;category=android.intent.category.DEFAULT;scheme=http;end"
+    
+    @classmethod
+    def get_vlc_desktop_url(cls, file_id: str, filename: str = None) -> str:
+        """Generate VLC desktop URL for a file"""
+        if filename:
+            import urllib.parse
+            safe_filename = urllib.parse.quote(filename, safe='')
+            stream_url = f"{cls.BASE_URL}/stream/{file_id}/{safe_filename}"
+        else:
+            stream_url = f"{cls.BASE_URL}/stream/{file_id}"
+        
+        return f"vlc://{stream_url}"

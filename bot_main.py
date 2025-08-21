@@ -133,9 +133,9 @@ class FileLinkBot:
             
             await message.reply_text(help_text)
         
-        @self.bot.on_message(filters.command("dl"))
+        @self.bot.on_message(filters.command(["dl"]) | filters.regex(r"^\.dl$"))
         async def fdl_command(client: Client, message: Message):
-            """Handle /dl command - main functionality"""
+            """Handle /dl and .dl command - main functionality"""
             try:
                 # Check if this is a reply to a message
                 if not message.reply_to_message:
@@ -189,35 +189,46 @@ class FileLinkBot:
                 # Get media type info for better display
                 media_info = media_processor.detect_media_type(file_info['name'], file_info['mime_type'])
                 
-                # Create response message
-                file_type_emoji = {
-                    'video': '🎬',
-                    'audio': '🎵',
-                    'document': '📄',
-                    'image': '🖼️',
-                    'archive': '📦',
-                    'application': '⚙️'
-                }
+                # Get file type display name
+                file_type_display = media_processor.get_file_type_display(file_info['name'], file_info['mime_type'])
                 
-                emoji = file_type_emoji.get(media_info.get('type', file_info['type']), '📁')
+                # Check if file is streamable
+                is_streamable = media_processor.is_streamable(file_info['name'], file_info['mime_type'])
                 
-                # Simple response with essential information
+                # Create response message with new format
                 response_text = (
-                    f"{emoji} **File Links Generated!**\n\n"
-                    f"📝 **File Name:** `{file_info['name']}`\n"
-                    f"📏 **File Size:** {self.format_file_size(file_info['size'])}\n\n"
-                    f"📥 **Download:** [Click Here]({enhanced_urls['download_named']})\n"
-                    f"📺 **Stream:** [Click Here]({enhanced_urls['stream_named']})\n\n"
-                    f"⚡ Links are ready to use immediately!"
+                    f"📝 **File Name:** {file_info['name']}\n"
+                    f"📏 **File Size:** {self.format_file_size(file_info['size'])}\n"
+                    f"🗂️ **File Type:** {file_type_display}\n"
+                    f"🔗 **MIME Type:** {file_info['mime_type']}\n"
                 )
                 
-                # Simplified inline keyboard with essential buttons only
-                keyboard = InlineKeyboardMarkup([
-                    [
-                        InlineKeyboardButton("📥 Download", url=enhanced_urls['download_named']),
-                        InlineKeyboardButton("📺 Stream", url=enhanced_urls['stream_named'])
-                    ]
-                ])
+                # Add streamable info and links only for streamable files
+                if is_streamable:
+                    response_text += f"🎵 **Streamable:** Yes\n\n"
+                    response_text += f"📥 **Download:** `{enhanced_urls['download_named']}`\n"
+                    response_text += f"📺 **Stream:** `{enhanced_urls['stream_named']}`"
+                else:
+                    response_text += f"\n📥 **Download:** `{enhanced_urls['download_named']}`"
+                
+                # Create keyboard based on file type
+                if is_streamable:
+                    keyboard = InlineKeyboardMarkup([
+                        [
+                            InlineKeyboardButton("📥 Download", url=enhanced_urls['download_named']),
+                            InlineKeyboardButton("📺 Stream", url=enhanced_urls['stream_named'])
+                        ],
+                        [
+                            InlineKeyboardButton("📱 Open with VLC Android", url=enhanced_urls['vlc_android']),
+                            InlineKeyboardButton("🖥️ Open with VLC Desktop", url=enhanced_urls['vlc_desktop'])
+                        ]
+                    ])
+                else:
+                    keyboard = InlineKeyboardMarkup([
+                        [
+                            InlineKeyboardButton("📥 Download", url=enhanced_urls['download_named'])
+                        ]
+                    ])
                 
                 await message.reply_text(response_text, reply_markup=keyboard, disable_web_page_preview=True)
                 

@@ -147,10 +147,36 @@ class MediaProcessor:
             'download_named': f"{base_url}/download/{file_id}/{encoded_filename}",
             'stream': f"{base_url}/stream/{file_id}",
             'stream_named': f"{base_url}/stream/{file_id}/{encoded_filename}",
-            'direct': f"{base_url}/direct/{file_id}/{encoded_filename}"
+            'direct': f"{base_url}/direct/{file_id}/{encoded_filename}",
+            'vlc_android': f"intent:{base_url}/stream/{file_id}/{encoded_filename}#Intent;package=org.videolan.vlc;type=video/*;category=android.intent.category.DEFAULT;scheme=http;end",
+            'vlc_desktop': f"vlc://{base_url}/stream/{file_id}/{encoded_filename}"
         }
         
         return urls
+    
+    @classmethod
+    def is_streamable(cls, filename: str, mime_type: str = None) -> bool:
+        """Check if a file is streamable (video or audio)"""
+        media_info = cls.detect_media_type(filename, mime_type)
+        return media_info.get('is_streamable', False)
+    
+    @classmethod
+    def get_file_type_display(cls, filename: str, mime_type: str = None) -> str:
+        """Get display-friendly file type"""
+        media_info = cls.detect_media_type(filename, mime_type)
+        file_type = media_info.get('type', 'unknown')
+        
+        type_mapping = {
+            'video': 'Video',
+            'audio': 'Audio',
+            'document': 'Document',
+            'image': 'Image',
+            'archive': 'Archive',
+            'application': 'Application',
+            'unknown': 'File'
+        }
+        
+        return type_mapping.get(file_type, 'File')
     
     @classmethod
     def extract_file_metadata(cls, message) -> Dict[str, Any]:
