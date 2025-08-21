@@ -147,9 +147,7 @@ class MediaProcessor:
             'download_named': f"{base_url}/download/{file_id}/{encoded_filename}",
             'stream': f"{base_url}/stream/{file_id}",
             'stream_named': f"{base_url}/stream/{file_id}/{encoded_filename}",
-            'direct': f"{base_url}/direct/{file_id}/{encoded_filename}",
-            'vlc_android': f"intent:{base_url}/stream/{file_id}/{encoded_filename}#Intent;package=org.videolan.vlc;type=video/*;category=android.intent.category.DEFAULT;scheme=http;end",
-            'vlc_desktop': f"vlc://{base_url}/stream/{file_id}/{encoded_filename}"
+            'direct': f"{base_url}/direct/{file_id}/{encoded_filename}"
         }
         
         return urls

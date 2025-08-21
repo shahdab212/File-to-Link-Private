@@ -89,7 +89,7 @@ class FileLinkBot:
                 "📁 I can generate direct download and streaming links for your Telegram files.\n\n"
                 "**How to use:**\n"
                 "1. Forward or send any video, audio, or document file\n"
-                "2. Reply to that message with `/dl`\n"
+                "2. Reply to that message with `/dl`, `/dlink`, `.dl`, or `.dlink`\n"
                 "3. Get instant download and streaming links!\n\n"
                 "**Supported files:**\n"
                 "• 📹 Videos (up to 4GB)\n"
@@ -99,7 +99,7 @@ class FileLinkBot:
                 "• ⚡ Fast streaming without downloading\n"
                 "• 📱 Mobile-friendly links\n"
                 "• 🔒 Secure file handling\n\n"
-                "Try it now by sending a file and replying with `/dl`!"
+                "Try it now by sending a file and replying with any download command!"
             )
             
             keyboard = InlineKeyboardMarkup([
@@ -116,8 +116,13 @@ class FileLinkBot:
                 "📖 **Help - How to Use File-to-Link Bot**\n\n"
                 "**Step-by-step guide:**\n\n"
                 "1️⃣ **Send a file**: Upload any video, audio, or document to the chat\n"
-                "2️⃣ **Reply with /dl**: Reply to the file message with the command `/dl`\n"
+                "2️⃣ **Reply with a download command**: Reply to the file message with `/dl`, `/dlink`, `.dl`, or `.dlink`\n"
                 "3️⃣ **Get your links**: Receive download and streaming links instantly!\n\n"
+                "**Available commands:**\n"
+                "• `/dl` - Generate download links\n"
+                "• `/dlink` - Generate download links\n"
+                "• `.dl` - Generate download links\n"
+                "• `.dlink` - Generate download links\n\n"
                 "**Supported file types:**\n"
                 "• 🎬 Video files (.mp4, .mkv, .avi, etc.)\n"
                 "• 🎵 Audio files (.mp3, .flac, .wav, etc.)\n"
@@ -134,19 +139,19 @@ class FileLinkBot:
             
             await message.reply_text(help_text)
         
-        @self.bot.on_message(filters.command(["dl"]) | filters.regex(r"^\.dl$"))
+        @self.bot.on_message(filters.command(["dl", "dlink"]) | filters.regex(r"^\.dl$|^\.dlink$"))
         async def fdl_command(client: Client, message: Message):
-            """Handle /dl and .dl command - main functionality"""
+            """Handle /dl, /dlink, .dl, and .dlink commands - main functionality"""
             try:
                 # Check if this is a reply to a message
                 if not message.reply_to_message:
                     await message.reply_text(
-                        "❌ **Please reply to a file message with `/dl`**\n\n"
+                        "❌ **Please reply to a file message with a download command**\n\n"
                         "📝 **How to use:**\n"
                         "1. Find a message with a video, audio, or document\n"
-                        "2. Reply to that message with `/dl`\n"
+                        "2. Reply to that message with `/dl`, `/dlink`, `.dl`, or `.dlink`\n"
                         "3. Get your download links!\n\n"
-                        "💡 **Tip:** You can forward files from other chats and then use `/dl`"
+                        "💡 **Tip:** You can forward files from other chats and then use any download command"
                     )
                     return
                 
@@ -196,9 +201,7 @@ class FileLinkBot:
                     safe_filename = quote(file_info['name'], safe='')
                     enhanced_urls = {
                         'download_named': f"{Config.BASE_URL}/download/{file_id}/{safe_filename}",
-                        'stream_named': f"{Config.BASE_URL}/stream/{file_id}/{safe_filename}",
-                        'vlc_android': f"intent:{Config.BASE_URL}/stream/{file_id}/{safe_filename}#Intent;package=org.videolan.vlc;type=video/*;category=android.intent.category.DEFAULT;scheme=http;end",
-                        'vlc_desktop': f"vlc://{Config.BASE_URL}/stream/{file_id}/{safe_filename}"
+                        'stream_named': f"{Config.BASE_URL}/stream/{file_id}/{safe_filename}"
                     }
                     file_type_display = file_info['type'].capitalize()
                     is_streamable = file_info['type'] in ['video', 'audio']
@@ -215,7 +218,8 @@ class FileLinkBot:
                 if is_streamable:
                     response_text += f"🎵 **Streamable:** Yes\n\n"
                     response_text += f"📥 **Download:** `{enhanced_urls['download_named']}`\n"
-                    response_text += f"📺 **Stream:** `{enhanced_urls['stream_named']}`"
+                    response_text += f"📺 **Stream:** `{enhanced_urls['stream_named']}`\n\n"
+                    response_text += f"💡 **Tip:** Copy the stream URL to open in VLC or other media players"
                 else:
                     response_text += f"\n📥 **Download:** `{enhanced_urls['download_named']}`"
                 
@@ -225,10 +229,6 @@ class FileLinkBot:
                         [
                             InlineKeyboardButton("📥 Download", url=enhanced_urls['download_named']),
                             InlineKeyboardButton("📺 Stream", url=enhanced_urls['stream_named'])
-                        ],
-                        [
-                            InlineKeyboardButton("📱 Open with VLC Android", url=enhanced_urls['vlc_android']),
-                            InlineKeyboardButton("🖥️ Open with VLC Desktop", url=enhanced_urls['vlc_desktop'])
                         ]
                     ])
                 else:
