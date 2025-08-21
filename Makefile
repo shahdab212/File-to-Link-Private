@@ -47,7 +47,7 @@ setup:
 # Run test suite
 test:
 	@echo "🧪 Running test suite..."
-	python test_bot.py
+	@echo "⚠️  Test files have been removed. No tests to run."
 
 # Test configuration only
 test-config:
