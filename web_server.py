@@ -229,9 +229,12 @@ class FileServer:
                 # For non-streamable files, redirect to download
                 raise web.HTTPFound(location=download_url)
             
+            # Get browser compatibility info
+            compatibility_info = self.media_processor.get_browser_compatibility_info(display_name)
+            
             # Generate HTML player page
             html_content = self._generate_player_html(
-                display_name, file_size, stream_url, download_url, is_video, is_audio
+                display_name, file_size, stream_url, download_url, is_video, is_audio, compatibility_info
             )
             
             return web.Response(text=html_content, content_type='text/html')
@@ -243,15 +246,36 @@ class FileServer:
             raise web.HTTPInternalServerError(text="Internal server error")
     
     def _generate_player_html(self, filename: str, file_size: str, stream_url: str, 
-                            download_url: str, is_video: bool, is_audio: bool) -> str:
+                            download_url: str, is_video: bool, is_audio: bool, compatibility_info: dict) -> str:
         """Generate HTML for the web player"""
+        
+        # Get proper MIME type
+        mime_type = compatibility_info['mime_type']
+        compatibility = compatibility_info['compatibility']
+        
+        # Generate compatibility warning if needed
+        compatibility_warning = ""
+        if compatibility == 'low':
+            compatibility_warning = f'''
+                <div class="compatibility-warning">
+                    ⚠️ <strong>Limited Browser Support:</strong> This format may not play in all browsers. 
+                    <a href="{download_url}" class="download-link">Download the file</a> to play with a media player like VLC.
+                </div>
+            '''
+        elif compatibility == 'moderate':
+            compatibility_warning = f'''
+                <div class="compatibility-info">
+                    ℹ️ <strong>Note:</strong> This format has moderate browser support. 
+                    If it doesn't play, try <a href="{download_url}" class="download-link">downloading</a> the file.
+                </div>
+            '''
         
         # Determine player type and settings
         if is_video:
             player_element = f'''
                 <video id="mediaPlayer" controls preload="metadata" style="width: 100%; max-width: 600px; height: auto;">
-                    <source src="{stream_url}" type="video/mp4">
-                    Your browser does not support the video tag.
+                    <source src="{stream_url}" type="{mime_type}">
+                    Your browser does not support this video format. <a href="{download_url}">Download the file</a> to play it with a media player.
                 </video>
             '''
             media_icon = "🎬"
@@ -259,8 +283,8 @@ class FileServer:
         else:  # is_audio
             player_element = f'''
                 <audio id="mediaPlayer" controls preload="metadata" style="width: 100%; max-width: 400px;">
-                    <source src="{stream_url}" type="audio/mpeg">
-                    Your browser does not support the audio tag.
+                    <source src="{stream_url}" type="{mime_type}">
+                    Your browser does not support this audio format. <a href="{download_url}">Download the file</a> to play it with a media player.
                 </audio>
             '''
             media_icon = "🎵"
@@ -380,6 +404,44 @@ class FileServer:
             opacity: 0.7;
         }}
         
+        .compatibility-warning {{
+            background: rgba(255, 193, 7, 0.2);
+            border: 1px solid rgba(255, 193, 7, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 0.9rem;
+            text-align: left;
+        }}
+        
+        .compatibility-info {{
+            background: rgba(23, 162, 184, 0.2);
+            border: 1px solid rgba(23, 162, 184, 0.5);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+            font-size: 0.9rem;
+            text-align: left;
+        }}
+        
+        .download-link {{
+            color: #ffd700;
+            text-decoration: underline;
+        }}
+        
+        .download-link:hover {{
+            color: #ffed4e;
+        }}
+        
+        .format-info {{
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 10px;
+            margin: 15px 0;
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }}
+        
         @media (max-width: 768px) {{
             .container {{
                 padding: 20px;
@@ -428,6 +490,13 @@ class FileServer:
             <div class="file-name">{filename}</div>
             <div class="file-info">{media_type} • {file_size}</div>
         </div>
+        
+        <div class="format-info">
+            📄 <strong>Format:</strong> {mime_type.split('/')[-1].upper()} • 
+            🌐 <strong>Browser Support:</strong> {compatibility.title()}
+        </div>
+        
+        {compatibility_warning}
         
         <div class="player-container">
             {player_element}
@@ -502,7 +571,7 @@ class FileServer:
             }}
         }});
         
-        // Add loading indicator
+        // Add loading indicator and enhanced error handling
         const player = document.getElementById('mediaPlayer');
         if (player) {{
             player.addEventListener('loadstart', function() {{
@@ -515,7 +584,52 @@ class FileServer:
             
             player.addEventListener('error', function(e) {{
                 console.error('Media error:', e);
-                alert('Error loading media. Please try downloading the file instead.');
+                const errorCode = player.error ? player.error.code : 'unknown';
+                let errorMessage = 'Error loading media. ';
+                
+                switch(errorCode) {{
+                    case 1:
+                        errorMessage += 'The media loading was aborted.';
+                        break;
+                    case 2:
+                        errorMessage += 'A network error occurred.';
+                        break;
+                    case 3:
+                        errorMessage += 'The media format is not supported by your browser.';
+                        break;
+                    case 4:
+                        errorMessage += 'The media source is not suitable.';
+                        break;
+                    default:
+                        errorMessage += 'An unknown error occurred.';
+                }}
+                
+                errorMessage += ' Please try downloading the file to play it with a media player like VLC.';
+                
+                // Show error message in the player container
+                const container = document.querySelector('.player-container');
+                if (container) {{
+                    container.innerHTML = `
+                        <div style="background: rgba(220, 53, 69, 0.2); border: 1px solid rgba(220, 53, 69, 0.5); 
+                                    border-radius: 10px; padding: 20px; text-align: center;">
+                            <div style="font-size: 2rem; margin-bottom: 10px;">❌</div>
+                            <div style="font-weight: 600; margin-bottom: 10px;">Playback Error</div>
+                            <div style="font-size: 0.9rem; margin-bottom: 15px;">${{errorMessage}}</div>
+                            <a href="{download_url}" class="btn btn-primary" style="text-decoration: none;">
+                                📥 Download File
+                            </a>
+                        </div>
+                    `;
+                }}
+            }});
+            
+            // Add loading indicator
+            player.addEventListener('waiting', function() {{
+                console.log('Buffering...');
+            }});
+            
+            player.addEventListener('playing', function() {{
+                console.log('Playing...');
             }});
         }}
     </script>

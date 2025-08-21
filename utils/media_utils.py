@@ -273,16 +273,114 @@ class MediaProcessor:
         }
         
         # Set appropriate MIME type
-        mime_type = mimetypes.guess_type(filename)[0]
-        if not mime_type:
-            if file_type == 'video':
-                mime_type = 'video/mp4'
-            elif file_type == 'audio':
-                mime_type = 'audio/mpeg'
-            else:
-                mime_type = 'application/octet-stream'
+        mime_type = cls.get_proper_mime_type(filename, file_type)
         
         headers['Content-Type'] = mime_type
         headers['Content-Length'] = str(file_size)
         
         return headers
+    
+    @classmethod
+    def get_proper_mime_type(cls, filename: str, file_type: str = None) -> str:
+        """Get proper MIME type based on file extension"""
+        filename_lower = filename.lower()
+        
+        # Video MIME types
+        video_mime_map = {
+            '.mp4': 'video/mp4',
+            '.m4v': 'video/mp4',
+            '.mkv': 'video/x-matroska',
+            '.webm': 'video/webm',
+            '.avi': 'video/x-msvideo',
+            '.mov': 'video/quicktime',
+            '.wmv': 'video/x-ms-wmv',
+            '.flv': 'video/x-flv',
+            '.3gp': 'video/3gpp',
+            '.ogv': 'video/ogg',
+            '.ts': 'video/mp2t',
+            '.mts': 'video/mp2t'
+        }
+        
+        # Audio MIME types
+        audio_mime_map = {
+            '.mp3': 'audio/mpeg',
+            '.m4a': 'audio/mp4',
+            '.aac': 'audio/aac',
+            '.wav': 'audio/wav',
+            '.flac': 'audio/flac',
+            '.ogg': 'audio/ogg',
+            '.oga': 'audio/ogg',
+            '.wma': 'audio/x-ms-wma',
+            '.opus': 'audio/opus',
+            '.webm': 'audio/webm'
+        }
+        
+        # Check video formats
+        for ext, mime in video_mime_map.items():
+            if filename_lower.endswith(ext):
+                return mime
+        
+        # Check audio formats
+        for ext, mime in audio_mime_map.items():
+            if filename_lower.endswith(ext):
+                return mime
+        
+        # Fallback to mimetypes module
+        mime_type = mimetypes.guess_type(filename)[0]
+        if mime_type:
+            return mime_type
+        
+        # Final fallback based on file type
+        if file_type == 'video':
+            return 'video/mp4'
+        elif file_type == 'audio':
+            return 'audio/mpeg'
+        else:
+            return 'application/octet-stream'
+    
+    @classmethod
+    def get_browser_compatibility_info(cls, filename: str) -> Dict[str, Any]:
+        """Get browser compatibility information for a file"""
+        filename_lower = filename.lower()
+        
+        # Highly compatible formats (supported by most browsers)
+        highly_compatible = {
+            'video': ['.mp4', '.webm', '.m4v'],
+            'audio': ['.mp3', '.m4a', '.aac', '.ogg', '.wav']
+        }
+        
+        # Moderately compatible formats (supported by some browsers)
+        moderately_compatible = {
+            'video': ['.ogv'],
+            'audio': ['.opus', '.flac']
+        }
+        
+        # Low compatibility formats (limited browser support)
+        low_compatible = {
+            'video': ['.mkv', '.avi', '.mov', '.wmv', '.flv', '.3gp', '.ts', '.mts'],
+            'audio': ['.wma']
+        }
+        
+        file_type = None
+        compatibility = 'unknown'
+        
+        # Determine file type and compatibility
+        for media_type in ['video', 'audio']:
+            if any(filename_lower.endswith(ext) for ext in highly_compatible[media_type]):
+                file_type = media_type
+                compatibility = 'high'
+                break
+            elif any(filename_lower.endswith(ext) for ext in moderately_compatible[media_type]):
+                file_type = media_type
+                compatibility = 'moderate'
+                break
+            elif any(filename_lower.endswith(ext) for ext in low_compatible[media_type]):
+                file_type = media_type
+                compatibility = 'low'
+                break
+        
+        return {
+            'file_type': file_type,
+            'compatibility': compatibility,
+            'mime_type': cls.get_proper_mime_type(filename, file_type)
+        }
