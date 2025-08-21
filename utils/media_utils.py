@@ -147,7 +147,6 @@ class MediaProcessor:
             'download_named': f"{base_url}/download/{file_id}/{encoded_filename}",
             'stream': f"{base_url}/stream/{file_id}",
             'stream_named': f"{base_url}/stream/{file_id}/{encoded_filename}",
-            'direct': f"{base_url}/direct/{file_id}/{encoded_filename}",
             'play': f"{base_url}/play/{file_id}",
             'play_named': f"{base_url}/play/{file_id}/{encoded_filename}"
         }

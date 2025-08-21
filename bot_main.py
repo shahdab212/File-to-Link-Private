@@ -115,25 +115,45 @@ class FileLinkBot:
                 f"📏 **File Size:** {self.format_file_size(file_info['size'])}\n"
                 f"🗂️ **File Type:** {file_info['type'].capitalize()}\n\n"
                 f"🔗 **Links:**\n"
-                f"📥 Download: {enhanced_urls['download_named']}\n"
-                f"📺 Web Player: {enhanced_urls['play_named']}\n"
-                f"🔗 Direct Stream: {enhanced_urls['stream_named']}"
+                f"📥 Download: {enhanced_urls['download_named']}\n\n"
+                f"📺 Web Player: {enhanced_urls['play_named']}"
             )
             
-            # Forward the original file to media group
-            await message.forward(Config.MEDIA_GROUP_ID)
+            # Send the file directly without forwarding (removes forwarder sender name)
+            replied_message = message.reply_to_message
+            if replied_message.document:
+                await self.bot.send_document(
+                    Config.MEDIA_GROUP_ID,
+                    replied_message.document.file_id,
+                    caption=media_text,
+                    disable_notification=True
+                )
+            elif replied_message.video:
+                await self.bot.send_video(
+                    Config.MEDIA_GROUP_ID,
+                    replied_message.video.file_id,
+                    caption=media_text,
+                    disable_notification=True
+                )
+            elif replied_message.audio:
+                await self.bot.send_audio(
+                    Config.MEDIA_GROUP_ID,
+                    replied_message.audio.file_id,
+                    caption=media_text,
+                    disable_notification=True
+                )
+            else:
+                # Fallback: send just the text message if file type is not supported
+                await self.bot.send_message(
+                    Config.MEDIA_GROUP_ID,
+                    media_text,
+                    disable_web_page_preview=True
+                )
             
-            # Send the links as a separate message
-            await self.bot.send_message(
-                Config.MEDIA_GROUP_ID,
-                media_text,
-                disable_web_page_preview=True
-            )
-            
-            logger.info(f"Forwarded file to media group: {file_info['name']}")
+            logger.info(f"Sent file to media group: {file_info['name']}")
             
         except Exception as e:
-            logger.error(f"Error forwarding to media group: {e}")
+            logger.error(f"Error sending to media group: {e}")
     
     async def setup_handlers(self):
         """Setup all bot command and message handlers"""
@@ -145,9 +165,17 @@ class FileLinkBot:
             
             # Check if user is a member of the channel
             if not await self.check_channel_membership(user_id):
+                # Create keyboard with join channel button
+                join_keyboard = None
+                if Config.TELEGRAM_CHANNEL:
+                    join_keyboard = InlineKeyboardMarkup([
+                        [InlineKeyboardButton("📢 Join Channel", url=Config.TELEGRAM_CHANNEL)]
+                    ])
+                
                 await message.reply_text(
                     "❌ **You need to join the channel to use this bot.**\n"
-                    f"👉 [Join Channel]({Config.TELEGRAM_CHANNEL})",
+                    f"👉 Please join our update channel to continue using the bot.",
+                    reply_markup=join_keyboard,
                     disable_web_page_preview=True
                 )
                 return
@@ -170,10 +198,17 @@ class FileLinkBot:
                 "Try it now by sending a file and replying with any download command!"
             )
             
-            keyboard = InlineKeyboardMarkup([
+            # Create keyboard with help, about, and join channel buttons
+            keyboard_buttons = [
                 [InlineKeyboardButton("📖 Help", callback_data="help")],
                 [InlineKeyboardButton("ℹ️ About", callback_data="about")]
-            ])
+            ]
+            
+            # Add join channel button if channel is configured
+            if Config.TELEGRAM_CHANNEL:
+                keyboard_buttons.append([InlineKeyboardButton("📢 Join Update Channel", url=Config.TELEGRAM_CHANNEL)])
+            
+            keyboard = InlineKeyboardMarkup(keyboard_buttons)
             
             await message.reply_text(welcome_text, reply_markup=keyboard)
         
@@ -286,12 +321,11 @@ class FileLinkBot:
                 # Add streamable info and links only for streamable files
                 if is_streamable:
                     response_text += f"🎵 **Streamable:** Yes\n\n"
-                    response_text += f"📥 **Download:** `{enhanced_urls['download_named']}`\n"
-                    response_text += f"📺 **Web Player:** `{enhanced_urls['play_named']}`\n"
-                    response_text += f"🔗 **Direct Stream:** `{enhanced_urls['stream_named']}`\n\n"
+                    response_text += f"📥 **Download:** {enhanced_urls['download_named']}\n\n"
+                    response_text += f"📺 **Web Player:** {enhanced_urls['play_named']}\n\n"
                     response_text += f"💡 **Tip:** Use the Stream button for web player or copy the Direct Stream URL for VLC"
                 else:
-                    response_text += f"\n📥 **Download:** `{enhanced_urls['download_named']}`"
+                    response_text += f"\n📥 **Download:** {enhanced_urls['download_named']}"
                 
                 # Create keyboard based on file type
                 if is_streamable:
