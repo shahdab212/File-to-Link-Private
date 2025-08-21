@@ -220,11 +220,12 @@ class FileServer:
             stream_url = f"/stream/{file_id}/{filename}" if filename else f"/stream/{file_id}"
             download_url = f"/download/{file_id}/{filename}" if filename else f"/download/{file_id}"
             
-            # Check if file is streamable
-            is_video = file_info['file_type'] == 'video'
-            is_audio = file_info['file_type'] == 'audio'
-            is_streamable = is_video or is_audio
+            # Check if file is streamable using proper detection
+            is_streamable = self.media_processor.is_streamable(display_name, file_info.get('mime_type'))
+            is_video = file_info['file_type'] == 'video' or (is_streamable and 'video' in file_info.get('mime_type', ''))
+            is_audio = file_info['file_type'] == 'audio' or (is_streamable and 'audio' in file_info.get('mime_type', ''))
             
+            # Always show web player for streamable files, even if Telegram detected them as documents
             if not is_streamable:
                 # For non-streamable files, redirect to download
                 raise web.HTTPFound(location=download_url)
