@@ -249,7 +249,7 @@ class FileServer:
         # Determine player type and settings
         if is_video:
             player_element = f'''
-                <video id="mediaPlayer" controls preload="metadata" style="width: 100%; max-width: 800px; height: auto;">
+                <video id="mediaPlayer" controls preload="metadata" style="width: 100%; max-width: 600px; height: auto;">
                     <source src="{stream_url}" type="video/mp4">
                     Your browser does not support the video tag.
                 </video>
@@ -258,7 +258,7 @@ class FileServer:
             media_type = "Video"
         else:  # is_audio
             player_element = f'''
-                <audio id="mediaPlayer" controls preload="metadata" style="width: 100%; max-width: 600px;">
+                <audio id="mediaPlayer" controls preload="metadata" style="width: 100%; max-width: 400px;">
                     <source src="{stream_url}" type="audio/mpeg">
                     Your browser does not support the audio tag.
                 </audio>
@@ -300,7 +300,7 @@ class FileServer:
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             border: 1px solid rgba(255, 255, 255, 0.2);
             text-align: center;
-            max-width: 900px;
+            max-width: 800px;
             width: 100%;
         }}
         
@@ -390,6 +390,10 @@ class FileServer:
                 font-size: 1.2rem;
             }}
             
+            video, audio {{
+                max-width: 100% !important;
+            }}
+            
             .controls {{
                 flex-direction: column;
                 align-items: center;
@@ -398,6 +402,21 @@ class FileServer:
             .btn {{
                 width: 200px;
                 justify-content: center;
+            }}
+        }}
+        
+        @media (max-width: 480px) {{
+            .container {{
+                padding: 15px;
+                margin: 5px;
+            }}
+            
+            .file-name {{
+                font-size: 1.1rem;
+            }}
+            
+            .file-icon {{
+                font-size: 2.5rem;
             }}
         }}
     </style>
