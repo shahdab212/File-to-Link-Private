@@ -201,7 +201,8 @@ class FileLinkBot:
                     safe_filename = quote(file_info['name'], safe='')
                     enhanced_urls = {
                         'download_named': f"{Config.BASE_URL}/download/{file_id}/{safe_filename}",
-                        'stream_named': f"{Config.BASE_URL}/stream/{file_id}/{safe_filename}"
+                        'stream_named': f"{Config.BASE_URL}/stream/{file_id}/{safe_filename}",
+                        'play_named': f"{Config.BASE_URL}/play/{file_id}/{safe_filename}"
                     }
                     file_type_display = file_info['type'].capitalize()
                     is_streamable = file_info['type'] in ['video', 'audio']
@@ -218,8 +219,9 @@ class FileLinkBot:
                 if is_streamable:
                     response_text += f"🎵 **Streamable:** Yes\n\n"
                     response_text += f"📥 **Download:** `{enhanced_urls['download_named']}`\n"
-                    response_text += f"📺 **Stream:** `{enhanced_urls['stream_named']}`\n\n"
-                    response_text += f"💡 **Tip:** Copy the stream URL to open in VLC or other media players"
+                    response_text += f"📺 **Web Player:** `{enhanced_urls['play_named']}`\n"
+                    response_text += f"🔗 **Direct Stream:** `{enhanced_urls['stream_named']}`\n\n"
+                    response_text += f"💡 **Tip:** Use the Stream button for web player or copy the Direct Stream URL for VLC"
                 else:
                     response_text += f"\n📥 **Download:** `{enhanced_urls['download_named']}`"
                 
@@ -228,7 +230,7 @@ class FileLinkBot:
                     keyboard = InlineKeyboardMarkup([
                         [
                             InlineKeyboardButton("📥 Download", url=enhanced_urls['download_named']),
-                            InlineKeyboardButton("📺 Stream", url=enhanced_urls['stream_named'])
+                            InlineKeyboardButton("📺 Stream", url=enhanced_urls['play_named'])
                         ]
                     ])
                 else:
