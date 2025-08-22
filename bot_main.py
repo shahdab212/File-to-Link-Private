@@ -179,26 +179,23 @@ class FileLinkBot:
             """Handle /start command"""
             user_id = message.from_user.id
             
-            # Check if user is a member of the channel
-            if not await self.check_channel_membership(user_id):
-                # Create keyboard with join channel button
-                join_keyboard = None
-                if Config.TELEGRAM_CHANNEL:
-                    join_keyboard = InlineKeyboardMarkup([
-                        [InlineKeyboardButton("📢 Join Channel", url=Config.TELEGRAM_CHANNEL)]
-                    ])
-                
-                await message.reply_text(
-                    "❌ **You need to join the channel to use this bot.**\n"
-                    f"👉 Please join our update channel to continue using the bot.",
-                    reply_markup=join_keyboard,
-                    disable_web_page_preview=True
-                )
-                return
-            
+            # Build welcome text
             welcome_text = (
                 "🤖 **Welcome to File-to-Link Bot!**\n\n"
                 "📁 I can generate direct download and streaming links for your Telegram files.\n\n"
+            )
+            
+            # Add polite channel join suggestion if channel is configured
+            if Config.TELEGRAM_CHANNEL:
+                # Check if user is already a member (just for the personalized message)
+                is_member = await self.check_channel_membership(user_id)
+                if not is_member:
+                    welcome_text += (
+                        "💡 **Stay Updated!**\n"
+                        "Join our update channel to get notified about new features and updates!\n\n"
+                    )
+            
+            welcome_text += (
                 "**How to use:**\n"
                 "1. Forward or send any video, audio, or document file\n"
                 "2. Reply to that message with `/dl`, `/dlink`, `.dl`, or `.dlink`\n"
@@ -222,7 +219,12 @@ class FileLinkBot:
             
             # Add join channel button if channel is configured
             if Config.TELEGRAM_CHANNEL:
-                keyboard_buttons.append([InlineKeyboardButton("📢 Join Update Channel", url=Config.TELEGRAM_CHANNEL)])
+                # Check if user is already a member to customize button text
+                is_member = await self.check_channel_membership(user_id)
+                if is_member:
+                    keyboard_buttons.append([InlineKeyboardButton("✅ Update Channel", url=Config.TELEGRAM_CHANNEL)])
+                else:
+                    keyboard_buttons.append([InlineKeyboardButton("📢 Join Update Channel", url=Config.TELEGRAM_CHANNEL)])
             
             keyboard = InlineKeyboardMarkup(keyboard_buttons)
             
