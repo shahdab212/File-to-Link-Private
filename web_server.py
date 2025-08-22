@@ -522,21 +522,156 @@ class FileServer:
     
     <script>
         function copyToClipboard(text) {{
-            navigator.clipboard.writeText(window.location.origin + text).then(function() {{
-                // Create a temporary notification
-                const btn = event.target;
-                const originalText = btn.innerHTML;
-                btn.innerHTML = '✅ Copied!';
-                btn.style.background = 'rgba(46, 204, 113, 0.8)';
-                
-                setTimeout(() => {{
-                    btn.innerHTML = originalText;
-                    btn.style.background = '';
-                }}, 2000);
-            }}).catch(function(err) {{
-                console.error('Could not copy text: ', err);
-                alert('Failed to copy link to clipboard');
-            }});
+            const fullUrl = window.location.origin + text;
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            
+            // Method 1: Try modern clipboard API (works on HTTPS)
+            if (navigator.clipboard && window.isSecureContext) {{
+                navigator.clipboard.writeText(fullUrl).then(function() {{
+                    showCopySuccess(btn, originalText);
+                }}).catch(function(err) {{
+                    console.warn('Clipboard API failed, trying fallback:', err);
+                    fallbackCopyToClipboard(fullUrl, btn, originalText);
+                }});
+            }} else {{
+                // Method 2: Use fallback for HTTP or unsupported browsers
+                fallbackCopyToClipboard(fullUrl, btn, originalText);
+            }}
+        }}
+        
+        function fallbackCopyToClipboard(text, btn, originalText) {{
+            // Create a temporary textarea element
+            const textArea = document.createElement("textarea");
+            textArea.value = text;
+            
+            // Make it invisible but still selectable
+            textArea.style.position = "fixed";
+            textArea.style.top = "0";
+            textArea.style.left = "0";
+            textArea.style.width = "2em";
+            textArea.style.height = "2em";
+            textArea.style.padding = "0";
+            textArea.style.border = "none";
+            textArea.style.outline = "none";
+            textArea.style.boxShadow = "none";
+            textArea.style.background = "transparent";
+            textArea.style.opacity = "0";
+            
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            try {{
+                // Try the older execCommand method
+                const successful = document.execCommand('copy');
+                if (successful) {{
+                    showCopySuccess(btn, originalText);
+                }} else {{
+                    showManualCopyDialog(text);
+                }}
+            }} catch (err) {{
+                console.error('Fallback copy failed:', err);
+                showManualCopyDialog(text);
+            }}
+            
+            document.body.removeChild(textArea);
+        }}
+        
+        function showCopySuccess(btn, originalText) {{
+            btn.innerHTML = '✅ Copied!';
+            btn.style.background = 'rgba(46, 204, 113, 0.8)';
+            
+            setTimeout(() => {{
+                btn.innerHTML = originalText;
+                btn.style.background = '';
+            }}, 2000);
+        }}
+        
+        function showManualCopyDialog(text) {{
+            // Create a modal dialog for manual copying
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                background: rgba(30, 30, 30, 0.95);
+                backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.2);
+                border-radius: 15px;
+                padding: 25px;
+                z-index: 10000;
+                max-width: 90%;
+                width: 500px;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            `;
+            
+            modal.innerHTML = `
+                <div style="color: white; text-align: center;">
+                    <h3 style="margin: 0 0 15px 0; font-size: 1.2rem;">📋 Copy Link</h3>
+                    <p style="margin: 0 0 15px 0; opacity: 0.9; font-size: 0.9rem;">
+                        Select and copy the link below:
+                    </p>
+                    <input type="text" value="${{text}}" readonly style="
+                        width: 100%;
+                        padding: 10px;
+                        border: 1px solid rgba(255, 255, 255, 0.3);
+                        border-radius: 8px;
+                        background: rgba(255, 255, 255, 0.1);
+                        color: white;
+                        font-family: monospace;
+                        font-size: 0.85rem;
+                        margin-bottom: 15px;
+                        cursor: text;
+                    " onclick="this.select();" id="copyInput">
+                    <div style="display: flex; gap: 10px; justify-content: center;">
+                        <button onclick="
+                            document.getElementById('copyInput').select();
+                            document.execCommand('copy');
+                            this.innerHTML = '✅ Copied!';
+                            this.style.background = 'rgba(46, 204, 113, 0.8)';
+                            setTimeout(() => {{
+                                document.body.removeChild(this.closest('div').parentElement);
+                            }}, 1500);
+                        " style="
+                            background: rgba(74, 144, 226, 0.8);
+                            border: 1px solid rgba(74, 144, 226, 1);
+                            color: white;
+                            padding: 8px 20px;
+                            border-radius: 20px;
+                            cursor: pointer;
+                            font-weight: 500;
+                            transition: all 0.3s ease;
+                        " onmouseover="this.style.background='rgba(74, 144, 226, 1)'" 
+                          onmouseout="this.style.background='rgba(74, 144, 226, 0.8)'">
+                            Copy
+                        </button>
+                        <button onclick="document.body.removeChild(this.closest('div').parentElement);" style="
+                            background: rgba(255, 255, 255, 0.2);
+                            border: 1px solid rgba(255, 255, 255, 0.3);
+                            color: white;
+                            padding: 8px 20px;
+                            border-radius: 20px;
+                            cursor: pointer;
+                            font-weight: 500;
+                            transition: all 0.3s ease;
+                        " onmouseover="this.style.background='rgba(255, 255, 255, 0.3)'" 
+                          onmouseout="this.style.background='rgba(255, 255, 255, 0.2)'">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // Auto-select the text in the input
+            const input = document.getElementById('copyInput');
+            if (input) {{
+                input.focus();
+                input.select();
+            }}
         }}
         
         // Add keyboard shortcuts
